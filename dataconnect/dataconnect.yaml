@@ -1,0 +1,12 @@
+specVersion: "v1beta"
+serviceId: "LearnLanguagebyGivingThanks"
+location: "asia-east1"
+schema:
+  source: "./schema"
+  datasource:
+    postgresql:
+      database: "fdcdb"
+      cloudSql:
+        instanceId: "LearnLanguagebyGivingThanks-fdc"
+      # schemaValidation: "COMPATIBLE"
+connectorDirs: ["./connector"]
