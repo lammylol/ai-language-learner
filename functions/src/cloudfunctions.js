@@ -23,13 +23,19 @@ const initializeGenKit = async () => {
 export const processStringWithGenKit = functions.https.onRequest(
     {secrets: [genApiKey]},
     async (req, res) => {
-    // Grab the text parameter
-      const original = req.query.text;
+    // // Grab the text parameter
+    //   const original = req.query.text; query is used when running locally.
+
+      console.log('Request body:', req.body);
+
+      // Access the parameter from the Firebase callable function body. 
+      // Production uses body.
+      const original = req.body.data?.text;
 
       if (!original || typeof original !== 'string') {
-        // Return 400 for invalid input.
+        console.error('Invalid input:', req.body);
         return res.status(400).json({
-          error: 'Invalid input. Please provide a valid query parameter.',
+          error: 'Invalid input. Please provide a valid "text" parameter.',
         });
       }
 
@@ -41,11 +47,13 @@ export const processStringWithGenKit = functions.https.onRequest(
         const {text} = await ai.generate(original);
 
         // Send a 200 response with the result.
+        console.log('AI Response generated:', text);
         res.status(200).json({
           result: text,
         });
       } catch (error) {
         // Send a 500 error for an internal server issue.
+        console.error('Error occurred:', error);
         res.status(500).json({
           error: error.message || 'Failure: the process failed on the server.',
         });
