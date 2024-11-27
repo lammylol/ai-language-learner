@@ -15,6 +15,6 @@ To support this daily habit, I created this app. It prompts users to submit what
 
 I encourage you to try this with any language you’re learning!
 
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/1165ac6d-dce2-48c1-a9fa-a98beda9d6b3" alt="Screenshot" width="400">
+<p align="left">
+  <img src="https://github.com/user-attachments/assets/1165ac6d-dce2-48c1-a9fa-a98beda9d6b3" alt="Screenshot" width="300">
 </p>
