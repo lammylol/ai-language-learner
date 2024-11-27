@@ -22,7 +22,7 @@ struct LearnLanguagebyGivingThanksApp: App {
     
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ContentView(language: .kr)
         }
     }
 }

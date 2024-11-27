@@ -30,12 +30,14 @@ export const processStringWithGenKit = functions.https.onRequest(
 
       // Access the parameter from the Firebase callable function body. 
       // Production uses body.
-      const original = req.body.data?.text;
 
-      if (!original || typeof original !== 'string') {
+      const systemInstruction = req.query.systemInstruction || req.body?.data?.systemInstruction || "";
+      const prompt = req.query.prompt || req.body?.data?.prompt;
+
+      if (typeof systemInstruction !== 'string' || !prompt || typeof prompt !== 'string') {
         console.error('Invalid input:', req.body);
         return res.status(400).json({
-          error: 'Invalid input. Please provide a valid "text" parameter.',
+          error: 'Invalid input. Please provide a valid "systemInstruction" and "prompt" parameter.',
         });
       }
 
@@ -43,8 +45,14 @@ export const processStringWithGenKit = functions.https.onRequest(
         // Initialize genkit with the API key
         const ai = await initializeGenKit();
 
-        // Call genkit AI.
-        const {text} = await ai.generate(original);
+        const request = { 
+          prompt: prompt
+        };
+        // provide system instruction only if there is system instruction passed.
+        if (systemInstruction.trim()) {
+          request.system = systemInstruction;
+        }
+        const { text } = await ai.generate(request);
 
         // Send a 200 response with the result.
         console.log('AI Response generated:', text);
