@@ -1,7 +1,7 @@
 # AI Language Learner  
 Learn languages easier with the help of AI.
 
-## Note from Matt 
+## Background 
 **GAH!** It is so hard to learn Korean. I've been studying Korean on and off for the past year so I can fully utilize it when I spend time in Korea with the in-laws for the holidays. Over the past two months, I ramped up my studying every morning. Beyond just the vocab learning from Duolingo and the grammar from TTMIK (Talk to Me in Korean), what helped me most was writing sentences consistently.
 
 Writing an open sentence without a prompt or specific intention is not easy. That’s why I spent my mornings figuring out how I could consistently write something meaningful and gain more from the process. I decided to take something I already do every morning and do it in Korean instead of English.
@@ -15,6 +15,7 @@ To support this daily habit, I created this app. It prompts users to submit what
 
 I encourage you to try this with any language you’re learning!
 
+## Screenshots
 <p align="left">
   <img src="https://github.com/user-attachments/assets/1165ac6d-dce2-48c1-a9fa-a98beda9d6b3" alt="Screenshot" width="300">
 </p>
