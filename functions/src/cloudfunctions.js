@@ -3,12 +3,14 @@ import {defineSecret} from 'firebase-functions/params';
 import admin from 'firebase-admin';
 import {genkit} from 'genkit';
 import {googleAI, gemini15Flash} from '@genkit-ai/googleai';
+import OpenAI from "openai";
 
 // Initialize Firebase Admin SDK
 admin.initializeApp();
 
 // // Access the environment variable
 const genApiKey = defineSecret('GENAPI_KEY');
+const openAIKey = defineSecret('OPENAI_KEY')
 
 // Function to initialize genkit with the API key
 const initializeGenKit = async () => {
@@ -19,7 +21,7 @@ const initializeGenKit = async () => {
   });
 };
 
-// Create the exports function
+// Create the exports function for genKit.
 export const processStringWithGenKit = functions.https.onRequest(
     {secrets: [genApiKey]},
     async (req, res) => {
@@ -67,3 +69,88 @@ export const processStringWithGenKit = functions.https.onRequest(
         });
       }
     });
+
+// Create the exports function for genKit.
+export const processStringWithOpenAI = functions.https.onRequest(
+  {secrets: [openAIKey]},
+  async (req, res) => {
+  // // Grab the text parameter
+  //   const original = req.query.text; query is used when running locally.
+
+    console.log('Request body:', req.body);
+
+    // Access the parameter from the Firebase callable function body. 
+    // Production uses body.
+
+    const systemInstruction = req.query.systemInstruction || req.body?.data?.systemInstruction || "";
+    const prompt = req.query.prompt || req.body?.data?.prompt;
+
+    if (typeof systemInstruction !== 'string' || !prompt || typeof prompt !== 'string') {
+      console.error('Invalid input:', req.body);
+      return res.status(400).json({
+        error: 'Invalid input. Please provide a valid "systemInstruction" and "prompt" parameter.',
+      });
+    }
+
+    try {
+      // Initialize genkit with the API key
+      const ai = new OpenAI({
+        apiKey: openAIKey.value()
+      });
+
+      const messages = [
+        {
+          role: "user",
+          content: prompt,
+        },
+        ...(systemInstruction.trim()
+          ? [
+              {
+                role: "system",
+                content: systemInstruction,
+              },
+            ]
+          : []),
+      ];
+
+      // const tools = [
+      //     {
+      //       "type": "function",
+      //       "function": {
+      //         "name": "get_current_weather",
+      //         "description": "Get the current weather in a given location",
+      //         "parameters": {
+      //           "type": "object",
+      //           "properties": {
+      //             "location": {
+      //               "type": "string",
+      //               "description": "The city and state, e.g. San Francisco, CA",
+      //             },
+      //             "unit": {"type": "string", "enum": ["celsius", "fahrenheit"]},
+      //           },
+      //           "required": ["location"],
+      //         },
+      //       }
+      //     }
+      // ];
+
+      const { response } = await ai.chat.completions.create({
+            messages: messages,
+            model: "gpt-4o-mini",
+          });
+
+      const text = response.choices[0]?.message?.content || "No response from AI.";
+
+      // Send a 200 response with the result.
+      console.log('AI Response generated:', text);
+      res.status(200).json({
+        result: text,
+      });
+    } catch (error) {
+      // Send a 500 error for an internal server issue.
+      console.error('Error occurred:', error);
+      res.status(500).json({
+        error: error.message || 'Failure: the process failed on the server.',
+      });
+    }
+  });
