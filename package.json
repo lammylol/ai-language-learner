@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "@genkit-ai/googleai": "^0.9.6",
+    "firebase-admin": "^13.0.1",
+    "firebase-functions": "^6.1.1",
+    "genkit": "^0.9.6",
+    "openai": "^4.73.1"
+  }
+}
