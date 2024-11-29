@@ -16,3 +16,8 @@ import {
   processStringWithGenKit,
 } from './cloudfunctions.js'; // Assuming cloudfunctions.js is using ESM
 export {processStringWithGenKit};
+
+import {
+  processStringWithOpenAI,
+} from './cloudfunctions.js'; // Assuming cloudfunctions.js is using ESM
+export {processStringWithOpenAI};
