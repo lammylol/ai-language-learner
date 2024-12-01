@@ -5,5 +5,8 @@
     "firebase-functions": "^6.1.1",
     "genkit": "^0.9.6",
     "openai": "^4.73.1"
+  },
+  "devDependencies": {
+    "eslint": "^9.16.0"
   }
 }

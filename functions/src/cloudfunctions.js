@@ -10,7 +10,7 @@ admin.initializeApp();
 
 // // Access the environment variable
 const genApiKey = defineSecret('GENAPI_KEY');
-const openAIKey = defineSecret('OPENAI_KEY')
+const openAIKey = defineSecret('OPENAI_KEY');
 
 // Function to initialize genkit with the API key
 const initializeGenKit = async () => {
@@ -20,6 +20,15 @@ const initializeGenKit = async () => {
     model: gemini15Flash, // Set the default model
   });
 };
+
+const initializeOpenAI = async () => {
+  const apiKey = openAIKey.value();
+
+  // Initialize genkit with the API key
+  return new OpenAI({
+    apiKey: apiKey
+  });
+}
 
 // Create the exports function for genKit.
 export const processStringWithGenKit = functions.https.onRequest(
@@ -72,15 +81,12 @@ export const processStringWithGenKit = functions.https.onRequest(
 
 // Create the exports function for genKit.
 export const processStringWithOpenAI = functions.https.onRequest(
-  {secrets: [openAIKey]},
+  {secrets: [openAIKey] },
   async (req, res) => {
   // // Grab the text parameter
   //   const original = req.query.text; query is used when running locally.
 
     console.log('Request body:', req.body);
-
-    // Access the parameter from the Firebase callable function body. 
-    // Production uses body.
 
     const systemInstruction = req.query.systemInstruction || req.body?.data?.systemInstruction || "";
     const prompt = req.query.prompt || req.body?.data?.prompt;
@@ -93,10 +99,7 @@ export const processStringWithOpenAI = functions.https.onRequest(
     }
 
     try {
-      // Initialize genkit with the API key
-      const ai = new OpenAI({
-        apiKey: openAIKey.value()
-      });
+      const ai = await initializeOpenAI();
 
       const messages = [
         {
@@ -112,6 +115,8 @@ export const processStringWithOpenAI = functions.https.onRequest(
             ]
           : []),
       ];
+
+      console.log(messages);
 
       // const tools = [
       //     {
@@ -134,12 +139,14 @@ export const processStringWithOpenAI = functions.https.onRequest(
       //     }
       // ];
 
-      const { response } = await ai.chat.completions.create({
-            messages: messages,
-            model: "gpt-4o-mini",
-          });
-
+      const response = await ai.chat.completions.create({
+        model: "gpt-4o-mini", // Ensure you're using a valid model, like gpt-4 or gpt-3.5-turbo
+        messages: messages
+      });
+      
+      // Accessing the response correctly
       const text = response.choices[0]?.message?.content || "No response from AI.";
+      console.log(text);  // Logs the response text
 
       // Send a 200 response with the result.
       console.log('AI Response generated:', text);
