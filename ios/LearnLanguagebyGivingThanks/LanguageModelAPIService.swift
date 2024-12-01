@@ -7,17 +7,23 @@
 
 import Foundation
 import FirebaseFunctions
+import SwiftUI
 
 class LanguageModelAPIService {
     lazy var functions = Functions.functions()
     
-    func getAiApiResponse(systemInstruction: String, prompt: String, completion: @escaping (Result<String, Error>) -> Void) {
+    func getAiApiResponse(/*messages: [Message], */systemInstruction: String, prompt: String, completion: @escaping (Result<String, Error>) -> Void) {
         let data: [String: Any] = [
             "systemInstruction": systemInstruction,
             "prompt": prompt
         ]
+//        let data: [String: Any] = [
+//            ForEach(messages, id: \.id) { message in
+//                "\(message.text)"
+//            }
+//        ]
         
-        functions.httpsCallable("processStringWithGenKit").call(data) { result, error in
+        functions.httpsCallable("processStringWithOpenAI").call(data) { result, error in
             
             if let error = error as NSError? {
                 completion(.failure(error))
