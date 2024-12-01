@@ -1,3 +1,31 @@
+# Xcode
+xcuserdata/
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+.DS_Store
+.DS_Store?
+timeline.xctimeline
+playground.xcworkspace
+
+# Swift Package Manager
+.build/
+.swiftpm
+
+# CocoaPods
+# Pods/
+
+# Carthage
+Carthage/Build/
+Carthage/Checkouts
+
+# fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
+
 # Logs
 logs
 *.log
@@ -11,10 +39,9 @@ firebase-debug.*.log*
 .firebase/
 
 # Firebase config
-
-# Uncomment this if you'd like others to create their own Firebase project.
-# For a team working on the same Firebase project(s), it is recommended to leave
-# it commented so all members can deploy to the same project(s) in .firebaserc.
+GoogleService-Info.plist
+google-services.json
+# Uncomment the following to allow personal Firebase projects
 # .firebaserc
 
 # Runtime data
@@ -28,8 +55,6 @@ lib-cov
 
 # Coverage directory used by tools like istanbul
 coverage
-
-# nyc test coverage
 .nyc_output
 
 # Grunt intermediate storage (http://gruntjs.com/creating-plugins#storing-task-files)
@@ -46,24 +71,36 @@ build/Release
 
 # Dependency directories
 node_modules/
-
-# Optional npm cache directory
 .npm
-
-# Optional eslint cache
-.eslintcache
-
-# Optional REPL history
-.node_repl_history
-
-# Output of 'npm pack'
-*.tgz
-
-# Yarn Integrity file
 .yarn-integrity
+.eslintcache
+.node_repl_history
+*.tgz
 
 # dotenv environment variables file
 .env
 
 # dataconnect generated files
 .dataconnect
+
+# Xcode Derived Data & Indexes
+DerivedData/
+.idea/
+*.xcuserstate
+*.xccheckout
+*.xcodeproj/project.xcworkspace/xcuserdata/
+*.moved-aside
+*.xcuserdatad
+*.xcscheme
+
+# SwiftUI Previews Cache
+.swiftpm/xcode
+.swiftpm/configuration
+
+# VS Code Settings
+.vscode/
+
+# CI/CD Configs
+.gitlab-ci.yml
+.github/
+.travis.yml
