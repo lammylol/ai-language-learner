@@ -9,6 +9,8 @@ import SwiftUI
 import Combine
 
 struct ContentView: View {
+//    @Environment(MessageModel.self) var messageModel
+//    
     @State var language: Language = .kr
     @State var text: String = ""
     @State var chatbotText: String = ""
@@ -73,6 +75,7 @@ struct ContentView: View {
                 .onChange(of: isFetching) { first, second in
                     if isFetching {
                         messages.append(Message(text: "...", senderType: .bot))
+//                        messageModel.addMessage(Message(text: "...", senderType: .bot))
                     }
                 }
             }
@@ -125,6 +128,7 @@ struct ContentView: View {
             let prompt = text
             text = ""
             messages.append(Message(text: prompt, senderType: .user))
+//            messageModel.addMessage(Message(text: prompt, senderType: .user))
             isTextEditorFocused = false
             
             do {
@@ -133,7 +137,7 @@ struct ContentView: View {
                 
                 var systemInstruction: String?
 //                if messages.count == 2 {
-                systemInstruction = "The user is trying to learn \(language.description). Please provide them with corrections to their answer to the prompt 'what are you grateful for?'. Please respond to them in English."
+                    systemInstruction = "The user is trying to learn \(language.description). Please provide them with corrections to their answer to the prompt 'what are you grateful for?'. Please respond to them in English."
 //                }
                 let response = try await languageAPIService.languageHelper(systemInstruction: systemInstruction ?? "", prompt: prompt)
                     
@@ -141,10 +145,12 @@ struct ContentView: View {
                     messages.removeLast()
                 }
                 messages.append(Message(text: response.trimmingCharacters(in: .whitespacesAndNewlines), senderType: .bot))
+//                messageModel.addMessage(Message(text: response.trimmingCharacters(in: .whitespacesAndNewlines), senderType: .bot))
                 print("AI Response: \(response)")
             } catch {
                 text = ""
                 messages.append(Message(text: "Error: \(error.localizedDescription)", senderType: .bot))
+//                messageModel.addMessage(Message(text: "Error: \(error.localizedDescription)", senderType: .bot))
                 print("Error: \(error.localizedDescription)")
             }
         }
