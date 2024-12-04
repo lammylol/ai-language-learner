@@ -86,37 +86,59 @@ export const processStringWithOpenAI = functions.https.onRequest(
   // // Grab the text parameter
   //   const original = req.query.text; query is used when running locally.
 
-    console.log('Request body:', req.body);
+    console.log('Request body:', JSON.stringify(req.body));
 
     const systemInstruction = req.query.systemInstruction || req.body?.data?.systemInstruction || "";
-    const prompt = req.query.prompt || req.body?.data?.prompt;
+    // const prompt = req.query.prompt || req.body?.data?.prompt;
+    const messages = req.query.messages ? JSON.parse(decodeURIComponent(req.query.messages)) : [];
 
-    if (typeof systemInstruction !== 'string' || !prompt || typeof prompt !== 'string') {
+    // if (typeof systemInstruction !== 'string' || !prompt || typeof prompt !== 'string') {
+    //   console.error('Invalid input:', req.body);
+    //   return res.status(400).json({
+    //     error: 'Invalid input. Please provide a valid "systemInstruction" and "prompt" parameter.',
+    //   });
+    // }
+
+    if (typeof systemInstruction !== 'string' || !messages || !Array.isArray(messages)) {
       console.error('Invalid input:', req.body);
       return res.status(400).json({
-        error: 'Invalid input. Please provide a valid "systemInstruction" and "prompt" parameter.',
+        error: 'Invalid input. Please provide a valid "systemInstruction" and "messages" parameter.',
       });
-    }
+  }
 
     try {
       const ai = await initializeOpenAI();
 
-      const messages = [
-        {
-          role: "user",
-          content: prompt,
-        },
+      const messageJson = [
         ...(systemInstruction.trim()
-          ? [
-              {
-                role: "system",
-                content: systemInstruction,
-              },
-            ]
-          : []),
+        ? [
+            {
+              role: "system",
+              content: systemInstruction,
+            }
+          ]
+        : [])
       ];
 
-      console.log(messages);
+      // Append message history, ensuring proper structure and types
+      for (const message in messages) {  // Iterate over the elements directly
+        if (
+          message && 
+          typeof message.text === 'string' && 
+          typeof message.senderType === 'string'
+        ) {
+          messageJson.push({
+            role: message.senderType === 'bot' ? "assistant" : "user",
+            content: message.text,
+          });
+        } else {
+          return res.status(400).json({
+            error: 'Invalid message body.',
+          });
+        }
+      }
+
+      console.log(messageJson);
 
       // const tools = [
       //     {
@@ -141,7 +163,7 @@ export const processStringWithOpenAI = functions.https.onRequest(
 
       const response = await ai.chat.completions.create({
         model: "gpt-4o-mini", // Ensure you're using a valid model, like gpt-4 or gpt-3.5-turbo
-        messages: messages
+        messages: messageJson
       });
       
       // Accessing the response correctly

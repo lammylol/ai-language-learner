@@ -9,10 +9,11 @@ import SwiftUI
 import Combine
 
 struct ContentView: View {
+    @Environment(MessageModel.self) var messageModel
     @State var language: Language = .kr
     @State var text: String = ""
     @State var chatbotText: String = ""
-    @State var messages: [Message]
+//    @State var messages: [Message]
 //    @State var messages: [Message] = [Message(text: "Hi there! I'm here to help you learn a new language by asking you what you're grateful for each day. Don't worry if you get it wrong; I'll be here to help you out! Let's begin.\n\nWhat are you grateful for today?", senderType: .bot), Message(text: "Hello world", senderType: .user), Message(text: "Hello world", senderType: .bot)]
     @State private var keyboardHeight: CGFloat = 0 // Track keyboard height
     
@@ -28,7 +29,7 @@ struct ContentView: View {
     
     init(language: Language) {
         self.language = language
-        messages = [Message(text: "Hi there! I'm here to help you learn \(language.description.capitalized) by asking you what you're grateful for each day. Don't worry if you get it wrong; I'll be here to help you out! Let's begin.\n\nWhat are you grateful for today? \(language.welcomeMessage)", senderType: .bot)]
+        messageModel.messages = [Message(text: "Hi there! I'm here to help you learn \(language.description.capitalized) by asking you what you're grateful for each day. Don't worry if you get it wrong; I'll be here to help you out! Let's begin.\n\nWhat are you grateful for today? \(language.welcomeMessage)", senderType: .bot)]
 //        
 //        // Listen for keyboard show and hide events
 //        self.keyboardWillShow = NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)
@@ -52,7 +53,7 @@ struct ContentView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     VStack {
-                        ForEach(messages) { message in
+                        ForEach(messageModel.messages) { message in
                             MessageView(message: message)
                         }
                     }
@@ -61,9 +62,9 @@ struct ContentView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .layoutPriority(1)
                 .scrollDismissesKeyboard(.immediately)
-                .onChange(of: messages.count) { first, second in
+                .onChange(of: messageModel.messages.count) { first, second in
                     // Scroll to the bottom whenever a new message is added
-                    if let lastMessage = messages.last {
+                    if let lastMessage = messageModel.messages.last {
                         withAnimation(.easeInOut(duration: 0.5)) {
                             proxy.scrollTo(lastMessage.id, anchor: .bottom)
                         }
@@ -72,7 +73,7 @@ struct ContentView: View {
                 .ignoresSafeArea(.keyboard)
                 .onChange(of: isFetching) { first, second in
                     if isFetching {
-                        messages.append(Message(text: "...", senderType: .bot))
+                        messageModel.messages.append(Message(text: "...", senderType: .bot))
                     }
                 }
             }
@@ -112,8 +113,8 @@ struct ContentView: View {
             .padding(.bottom, 10)
         }
         .onChange(of: language) { original, newLanguage in
-            if let firstMessage = messages.first {
-                messages[0].text = "Hi there! I'm here to help you learn \(language.description.capitalized) by asking you what you're grateful for each day. Don't worry if you get it wrong; I'll be here to help you out! Let's begin.\n\nWhat are you grateful for today? \(language.welcomeMessage)"
+            if let firstMessage = messageModel.messages.first {
+                messageModel.messages[0].text = "Hi there! I'm here to help you learn \(language.description.capitalized) by asking you what you're grateful for each day. Don't worry if you get it wrong; I'll be here to help you out! Let's begin.\n\nWhat are you grateful for today? \(language.welcomeMessage)"
             }
         }
         .padding(.horizontal, 20)
@@ -124,7 +125,7 @@ struct ContentView: View {
         Task {
             let prompt = text
             text = ""
-            messages.append(Message(text: prompt, senderType: .user))
+            messageModel.messages.append(Message(text: prompt, senderType: .user))
             isTextEditorFocused = false
             
             do {
@@ -137,14 +138,14 @@ struct ContentView: View {
 //                }
                 let response = try await languageAPIService.languageHelper(systemInstruction: systemInstruction ?? "", prompt: prompt)
                     
-                if messages.last?.text == "..." {
-                    messages.removeLast()
+                if messageModel.messages.last?.text == "..." {
+                    messageModel.messages.removeLast()
                 }
-                messages.append(Message(text: response.trimmingCharacters(in: .whitespacesAndNewlines), senderType: .bot))
+                messageModel.messages.append(Message(text: response.trimmingCharacters(in: .whitespacesAndNewlines), senderType: .bot))
                 print("AI Response: \(response)")
             } catch {
                 text = ""
-                messages.append(Message(text: "Error: \(error.localizedDescription)", senderType: .bot))
+                messageModel.messages.append(Message(text: "Error: \(error.localizedDescription)", senderType: .bot))
                 print("Error: \(error.localizedDescription)")
             }
         }

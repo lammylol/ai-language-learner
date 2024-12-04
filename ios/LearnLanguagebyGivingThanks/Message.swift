@@ -17,3 +17,14 @@ enum SenderType: String, Codable {
     case user
     case bot
 }
+
+@Observable class MessageModel {
+    public var messages: [Message] = []
+    
+    func addMessage(_ message: Message) {
+        if messages.count > 3 {
+            messages.removeFirst()
+        }
+        messages.append(message)
+    }
+}

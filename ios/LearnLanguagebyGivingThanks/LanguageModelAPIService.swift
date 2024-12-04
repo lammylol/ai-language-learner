@@ -11,10 +11,16 @@ import FirebaseFunctions
 class LanguageModelAPIService {
     lazy var functions = Functions.functions()
     
-    func getAiApiResponse(systemInstruction: String, prompt: String, completion: @escaping (Result<String, Error>) -> Void) {
+    func getAiApiResponse(messages: [Message], systemInstruction: String, prompt: String, completion: @escaping (Result<String, Error>) -> Void) {
         let data: [String: Any] = [
             "systemInstruction": systemInstruction,
-            "prompt": prompt
+            "prompt": prompt,
+            "messages": messages.map({
+                [
+                    "text":$0.text,
+                    "type":$0.senderType
+                ]
+            })
         ]
         
         functions.httpsCallable("processStringWithGenKit").call(data) { result, error in
