@@ -9,12 +9,11 @@ import SwiftUI
 import Combine
 
 struct ContentView: View {
-//    @Environment(MessageModel.self) var messageModel
-//    
     @State var language: Language = .kr
     @State var text: String = ""
-    @State var chatbotText: String = ""
+
     @State private var keyboardHeight: CGFloat = 0 // Track keyboard height
+    @State private var cancellables = Set<AnyCancellable>()
     
     private var languageAPIService: LanguageModelAPIService = LanguageModelAPIService()
     private var messageModel: MessageModel
@@ -30,21 +29,6 @@ struct ContentView: View {
     init(language: Language) {
         self.language = language
         self.messageModel = MessageModel(language: language)
-//
-//        // Listen for keyboard show and hide events
-//        self.keyboardWillShow = NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)
-//            .sink { [weak self] notification in
-//                guard let self = self else { return }
-//                if let keyboardFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
-//                    self.keyboardHeight = keyboardFrame.height
-//                }
-//            }
-//
-//        self.keyboardWillHide = NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)
-//            .sink { [weak self] _ in
-//                guard let self = self else { return }
-//                self.keyboardHeight = 0
-//            }
     }
     
     var body: some View {
@@ -54,73 +38,90 @@ struct ContentView: View {
             
             ScrollViewReader { proxy in
                 ScrollView {
-                    VStack {
-                        ForEach(messageModel.messages) { message in
-                            MessageView(message: message)
-                        }
+                    ForEach(messageModel.messages) { message in
+                        MessageView(message: message)
+                            .id(message.id)
                     }
                 }
-                .scrollIndicators(.hidden)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .layoutPriority(1)
-                .scrollDismissesKeyboard(.immediately)
-                .onChange(of: messageModel.messages.count) { first, second in
+                .scrollIndicators(.hidden)
+                .scrollDismissesKeyboard(.interactively)
+                .safeAreaPadding(.bottom)
+                .onChange(of: messageModel.messages.count) {
                     // Scroll to the bottom whenever a new message is added
                     if let lastMessage = messageModel.messages.last {
                         withAnimation(.easeInOut(duration: 0.5)) {
-                            proxy.scrollTo(lastMessage.id, anchor: .bottom)
+                            proxy.scrollTo(lastMessage.id, anchor: .bottom) // Scroll to last message
                         }
                     }
-                }
-                .ignoresSafeArea(.keyboard)
-                .onChange(of: isFetching) { first, second in
-                    if isFetching {
-                        messageModel.messages.append(Message(text: "...", senderType: .bot))
+                } // Scroll to bottom when new message is added.
+                .onChange(of: isTextEditorFocused) { old, new in
+                    DispatchQueue.main.async {
+                        if let lastMessage = messageModel.messages.last {
+                            withAnimation(.easeInOut(duration: 0.5)) {
+                                proxy.scrollTo(lastMessage.id, anchor: .bottom) // Scroll to last message
+                            }
+                        }
                     }
                 }
             }
             
             ZStack(alignment: .bottomTrailing) {
-                ZStack(alignment: .topLeading) {
-                    VStack (alignment: .leading) {
-                        TextEditor(text: $text)
-                            .frame(minWidth: 0, maxWidth: .infinity, minHeight: 60, maxHeight: 600)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .focused($isTextEditorFocused)
-                    }
-                    .padding()
-                    .offset(x: -4, y: -7)
-                    .cornerRadius(16)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(Color(.systemGray4), lineWidth: 1) // Optional border
-                    )
+                ZStack(alignment: .leading) {
+                    TextEditor(text: $text)
+                        .frame(minHeight: 40, maxHeight: 600)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .focused($isTextEditorFocused)
+                        .padding(.all, 5)
+                        .padding(.trailing, 40)
+                        .cornerRadius(16)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16)
+                                .stroke(Color(.systemGray4), lineWidth: 1) // Optional border
+                        )
                     
                     if text.isEmpty {
                         Text(language.enterMessage)
                             .foregroundStyle(.secondary).fontWeight(.light)
-                            .padding()
+                            .padding(.leading, 10)
                     }
                 }
-                
-                Button { submit()
+                Button {
+                    submit()
                 } label: {
-                    Image(systemName: "arrowshape.up.circle.fill")
-                        .resizable()
-                        .frame(width: 30, height: 30)
-                        .foregroundStyle(text.isEmpty ? Color.gray : Color.blue)
-                        .padding(.all, 7)
+                    VStack {
+                        Image(systemName: isFetching ? "square.fill" : "arrowshape.up.fill")
+                            .resizable()  // Make the image resizable
+                            .aspectRatio(contentMode: .fit)  // Maintain the aspect ratio
+                            .padding(isFetching ? 10 : 7)
+                            .background(
+                                Circle()
+                                    .fill(text.isEmpty ? Color.gray : Color.blue) // Circle color
+                                    .frame(width: 30, height: 30)
+                            )
+                            .foregroundStyle(.white)
+                    }
+                    .frame(width: 30, height: 30)
                 }
+                .padding(.all, 7)
+                .disabled(text.isEmpty)
             }
             .padding(.bottom, 10)
+        }
+        .padding(.horizontal, 15)
+        .onAppear {
+            setupKeyboardObservers()
         }
         .onChange(of: language) { original, newLanguage in
             if messageModel.messages.first != nil {
                 messageModel.messages[0].text = "Hi there! I'm here to help you learn \(language.description.capitalized) by asking you what you're grateful for each day. Don't worry if you get it wrong; I'll be here to help you out! Let's begin.\n\nWhat are you grateful for today? \(language.welcomeMessage)"
             }
-        }
-        .padding(.horizontal, 20)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        } // Change language translation when language changes.
+        .onChange(of: isFetching) { first, second in
+            if isFetching {
+                messageModel.messages.append(Message(text: "...", senderType: .bot))
+            }
+        } // // Add a new message showing 'loading' when fetching.
     }
     
     func submit() {
@@ -132,12 +133,13 @@ struct ContentView: View {
             
             do {
                 isFetching = true
-                defer { isFinished = true }
+                defer { isFetching = false }
                 
+                // system instruction setting
                 var systemInstruction: String?
-//                if messages.count == 2 {
-                    systemInstruction = "The user is trying to learn \(language.description). Please provide them with corrections to their answer to the prompt 'what are you grateful for?'. Please respond to them in English."
-//                }
+                systemInstruction = "The user is trying to learn \(language.description). Please provide them with corrections to their answer to the prompt 'what are you grateful for?'. Please respond to them in English."
+                
+                // response from model
                 let response = try await languageAPIService.languageHelper(systemInstruction: systemInstruction ?? "", messages: messageModel.messages)
                     
                 if messageModel.messages.last?.text == "..." {
@@ -151,6 +153,22 @@ struct ContentView: View {
                 print("Error: \(error.localizedDescription)")
             }
         }
+    }
+    
+    func setupKeyboardObservers() {
+        let showPublisher = NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)
+        let hidePublisher = NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)
+
+        showPublisher
+            .compactMap { $0.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect }
+            .map { $0.height }
+            .sink { self.keyboardHeight = $0 }
+            .store(in: &cancellables)
+
+        hidePublisher
+            .map { _ in CGFloat(0) }
+            .sink { self.keyboardHeight = $0 }
+            .store(in: &cancellables)
     }
 }
 
@@ -176,7 +194,7 @@ struct MessageView: View {
                     .padding(.all, 15)
                     .background(message.senderType == .bot
                                 ? Color(.systemGray6)
-                                : Color(.systemGray)) // Bubble background color
+                                : Color.secondary) // Bubble background color
                     .cornerRadius(16)
             }
             .padding(message.senderType == .bot ? .trailing : .leading, 60)
