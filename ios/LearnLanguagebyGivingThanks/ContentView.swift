@@ -79,6 +79,7 @@ struct ContentView: View {
                             RoundedRectangle(cornerRadius: 16)
                                 .stroke(Color(.systemGray4), lineWidth: 1) // Optional border
                         )
+                        .environment(\.locale, Locale(identifier: language.localeIdentifier))
                     
                     if text.isEmpty {
                         Text(language.enterMessage)
@@ -103,7 +104,8 @@ struct ContentView: View {
                     }
                     .frame(width: 30, height: 30)
                 }
-                .padding(.all, 7)
+                .padding(.trailing, 7)
+                .padding(.bottom, 10)
                 .disabled(text.isEmpty)
             }
             .padding(.bottom, 10)
@@ -239,26 +241,25 @@ struct PickerView: View {
 
 enum Language: String, CaseIterable {
     case us
-//    case fr
     case sp
     case kr
     case ch
-//    case jp
-//    case ar
     
-//    static var systemLanguages: [Language] {
-//        return [.en, .fr, .sp, .kr, .ch, .jp, .ar]
-//    }
+    var localeIdentifier: String {
+        switch self {
+        case .us: return "en_US"
+        case .sp: return "es_ES"
+        case .kr: return "ko_KR"
+        case .ch: return "zh_CN"
+        }
+    }
     
     var description: String {
         switch self {
         case .us: return "english"
-//        case .fr: return "french"
         case .sp: return "spanish"
         case .kr: return "korean"
         case .ch: return "chinese"
-//        case .jp: return "japanese"
-//        case .ar: return "arabic"
         }
     }
     
