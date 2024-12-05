@@ -9,15 +9,13 @@ import SwiftUI
 import Combine
 
 struct ContentView: View {
-    @Environment(MessageModel.self) var messageModel
     @State var language: Language = .kr
     @State var text: String = ""
     @State var chatbotText: String = ""
-//    @State var messages: [Message]
-//    @State var messages: [Message] = [Message(text: "Hi there! I'm here to help you learn a new language by asking you what you're grateful for each day. Don't worry if you get it wrong; I'll be here to help you out! Let's begin.\n\nWhat are you grateful for today?", senderType: .bot), Message(text: "Hello world", senderType: .user), Message(text: "Hello world", senderType: .bot)]
     @State private var keyboardHeight: CGFloat = 0 // Track keyboard height
     
     private var languageAPIService: LanguageModelAPIService = LanguageModelAPIService()
+    private var messageModel: MessageModel
     
     @State var isFetching: Bool = false
     @State var isFinished: Bool = false
@@ -29,18 +27,20 @@ struct ContentView: View {
     
     init(language: Language) {
         self.language = language
-        messageModel.messages = [Message(text: "Hi there! I'm here to help you learn \(language.description.capitalized) by asking you what you're grateful for each day. Don't worry if you get it wrong; I'll be here to help you out! Let's begin.\n\nWhat are you grateful for today? \(language.welcomeMessage)", senderType: .bot)]
-//        
+        self.messageModel = MessageModel(language: language)
+//
 //        // Listen for keyboard show and hide events
 //        self.keyboardWillShow = NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)
-//            .sink { notification in
+//            .sink { [weak self] notification in
+//                guard let self = self else { return }
 //                if let keyboardFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
 //                    self.keyboardHeight = keyboardFrame.height
 //                }
 //            }
-//        
+//
 //        self.keyboardWillHide = NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)
-//            .sink { _ in
+//            .sink { [weak self] _ in
+//                guard let self = self else { return }
 //                self.keyboardHeight = 0
 //            }
     }
@@ -113,7 +113,7 @@ struct ContentView: View {
             .padding(.bottom, 10)
         }
         .onChange(of: language) { original, newLanguage in
-            if let firstMessage = messageModel.messages.first {
+            if messageModel.messages.first != nil {
                 messageModel.messages[0].text = "Hi there! I'm here to help you learn \(language.description.capitalized) by asking you what you're grateful for each day. Don't worry if you get it wrong; I'll be here to help you out! Let's begin.\n\nWhat are you grateful for today? \(language.welcomeMessage)"
             }
         }
@@ -136,7 +136,7 @@ struct ContentView: View {
 //                if messages.count == 2 {
                 systemInstruction = "The user is trying to learn \(language.description). Please provide them with corrections to their answer to the prompt 'what are you grateful for?'. Please respond to them in English."
 //                }
-                let response = try await languageAPIService.languageHelper(systemInstruction: systemInstruction ?? "", prompt: prompt)
+                let response = try await languageAPIService.languageHelper(systemInstruction: systemInstruction ?? "", messages: messageModel.messages)
                     
                 if messageModel.messages.last?.text == "..." {
                     messageModel.messages.removeLast()

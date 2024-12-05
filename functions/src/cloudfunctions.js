@@ -86,11 +86,23 @@ export const processStringWithOpenAI = functions.https.onRequest(
   // // Grab the text parameter
   //   const original = req.query.text; query is used when running locally.
 
-    console.log('Request body:', JSON.stringify(req.body));
+    console.log('Request body:', req.query);
 
     const systemInstruction = req.query.systemInstruction || req.body?.data?.systemInstruction || "";
     // const prompt = req.query.prompt || req.body?.data?.prompt;
-    const messages = req.query.messages ? JSON.parse(decodeURIComponent(req.query.messages)) : [];
+    let messages = [];
+    try {
+        if (req.query.messages) {
+            messages = JSON.parse(decodeURIComponent(req.query.messages));
+        } else if (req.body?.data?.messages) {
+            messages = req.body.data.messages;
+        }
+    } catch (error) {
+        console.error('Error parsing messages:', error);
+        return res.status(400).json({
+            error: 'Invalid "messages" format.',
+        });
+    }
 
     // if (typeof systemInstruction !== 'string' || !prompt || typeof prompt !== 'string') {
     //   console.error('Invalid input:', req.body);
@@ -121,7 +133,7 @@ export const processStringWithOpenAI = functions.https.onRequest(
       ];
 
       // Append message history, ensuring proper structure and types
-      for (const message in messages) {  // Iterate over the elements directly
+      for (const message of messages) {  // Iterate over the elements directly
         if (
           message && 
           typeof message.text === 'string' && 

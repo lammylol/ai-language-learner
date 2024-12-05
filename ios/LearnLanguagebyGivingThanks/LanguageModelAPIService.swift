@@ -11,20 +11,19 @@ import FirebaseFunctions
 class LanguageModelAPIService {
     lazy var functions = Functions.functions()
     
-    func getAiApiResponse(messages: [Message], systemInstruction: String, prompt: String, completion: @escaping (Result<String, Error>) -> Void) {
+    func getAiApiResponse(messages: [Message], systemInstruction: String, completion: @escaping (Result<String, Error>) -> Void) {
         let data: [String: Any] = [
             "systemInstruction": systemInstruction,
-            "prompt": prompt,
-            "messages": messages.map({
+            "messages": messages.map { message in
                 [
-                    "text":$0.text,
-                    "type":$0.senderType
+                    "senderType": message.senderType.rawValue,
+                    "text": message.text
                 ]
-            })
+            }
         ]
         
-        functions.httpsCallable("processStringWithGenKit").call(data) { result, error in
-            
+        functions.httpsCallable("processStringWithOpenAI").call(data) { result, error in
+            print("Function result: \(String(describing: result?.data))")
             if let error = error as NSError? {
                 completion(.failure(error))
                 print("Error calling function: \(error.localizedDescription)")
@@ -39,9 +38,9 @@ class LanguageModelAPIService {
         }
     }
     
-    func languageHelper(systemInstruction: String, prompt: String) async throws -> String {
+    func languageHelper(systemInstruction: String, messages: [Message]) async throws -> String {
         return try await withCheckedThrowingContinuation { continuation in
-            getAiApiResponse(systemInstruction: systemInstruction, prompt: prompt, completion: { result in
+            getAiApiResponse(messages: messages, systemInstruction: systemInstruction, completion: { result in
                 switch result {
                 case .success(let response):
                     DispatchQueue.main.async {
