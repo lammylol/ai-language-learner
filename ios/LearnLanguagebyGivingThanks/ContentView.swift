@@ -145,7 +145,7 @@ struct ContentView: View {
                 // response from model
                 let response = try await languageAPIService.languageHelper(systemInstruction: systemInstruction ?? "", messages: messageModel.messages)
                     
-                if messageModel.messages.last?.text == "..." {
+                if messageModel.messages.last?.text == "Fetching..." {
                     messageModel.messages.removeLast()
                 }
                 messageModel.messages.append(Message(text: response.trimmingCharacters(in: .whitespacesAndNewlines), senderType: .bot))
