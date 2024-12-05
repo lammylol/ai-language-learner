@@ -72,7 +72,7 @@ struct ContentView: View {
                         .frame(minHeight: 40, maxHeight: 600)
                         .fixedSize(horizontal: false, vertical: true)
                         .focused($isTextEditorFocused)
-                        .padding(.all, 5)
+                        .padding(.leading, 5)
                         .padding(.trailing, 40)
                         .cornerRadius(16)
                         .overlay(
@@ -85,6 +85,7 @@ struct ContentView: View {
                         Text(language.enterMessage)
                             .foregroundStyle(.secondary).fontWeight(.light)
                             .padding(.leading, 10)
+                            .padding(.bottom, 2)
                     }
                 }
                 Button {
@@ -104,8 +105,8 @@ struct ContentView: View {
                     }
                     .frame(width: 30, height: 30)
                 }
-                .padding(.trailing, 7)
-                .padding(.bottom, 10)
+                .padding(.trailing, 5)
+                .padding(.bottom, 5)
                 .disabled(text.isEmpty)
             }
             .padding(.bottom, 10)
