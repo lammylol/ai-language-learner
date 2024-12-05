@@ -122,7 +122,7 @@ struct ContentView: View {
         } // Change language translation when language changes.
         .onChange(of: isFetching) { first, second in
             if isFetching {
-                messageModel.messages.append(Message(text: "...", senderType: .bot))
+                messageModel.messages.append(Message(text: "Fetching...", senderType: .bot))
             }
         } // // Add a new message showing 'loading' when fetching.
     }
