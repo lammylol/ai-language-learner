@@ -11,6 +11,9 @@ import Combine
 struct ContentView: View {
     @State var language: Language = .kr
     @State var text: String = ""
+    @State var scheduleTime: Date = Date()
+    @State var repeatSchedule: RepeatSchedule = .daily
+    @State var reminderToggle: Bool = false
 
     @State private var keyboardHeight: CGFloat = 0 // Track keyboard height
     @State private var cancellables = Set<AnyCancellable>()
@@ -21,6 +24,7 @@ struct ContentView: View {
     @State var isFetching: Bool = false
     @State var isFinished: Bool = false
     @FocusState var isTextEditorFocused: Bool
+    @State var showDatePickerPopUp: Bool = false
     
     // Initialize observers to listen for keyboard notifications
     @State private var keyboardWillShow: AnyCancellable?
@@ -33,8 +37,13 @@ struct ContentView: View {
     
     var body: some View {
         VStack (alignment: .leading) {
-            PickerView(selectedLanguage: $language)
-                .pickerStyle(.menu)
+            HStack {
+                PickerView(selectedLanguage: $language)
+                    .pickerStyle(.menu)
+                Spacer()
+                ReminderPickerLabel(scheduleTime: scheduleTime, showDatePickerPopUp: $showDatePickerPopUp)
+            }
+            .frame(height: 50)
             
             ScrollViewReader { proxy in
                 ScrollView {
@@ -122,9 +131,12 @@ struct ContentView: View {
         } // Change language translation when language changes.
         .onChange(of: isFetching) { first, second in
             if isFetching {
-                messageModel.messages.append(Message(text: "Fetching...", senderType: .bot))
+                messageModel.messages.append(Message(text: "fetching...", senderType: .bot))
             }
         } // // Add a new message showing 'loading' when fetching.
+        .sheet(isPresented: $showDatePickerPopUp){
+            ReminderPopUp(scheduleTime: $scheduleTime, repeatSchedule: $repeatSchedule, language: language)
+        }
     }
     
     func submit() {
@@ -145,7 +157,7 @@ struct ContentView: View {
                 // response from model
                 let response = try await languageAPIService.languageHelper(systemInstruction: systemInstruction ?? "", messages: messageModel.messages)
                     
-                if messageModel.messages.last?.text == "Fetching..." {
+                if messageModel.messages.last?.text == "fetching..." {
                     messageModel.messages.removeLast()
                 }
                 messageModel.messages.append(Message(text: response.trimmingCharacters(in: .whitespacesAndNewlines), senderType: .bot))

@@ -22,24 +22,22 @@ class LanguageModelAPIService {
                 ]
             }
         ]
-//        let data: [String: Any] = [
-//            ForEach(messages, id: \.id) { message in
-//                "\(message.text)"
-//            }
-//        ]
         
         functions.httpsCallable("processStringWithOpenAI").call(data) { result, error in
             if let error = error as NSError? {
+                NetworkingLogger.log("LanguageModelAPIService: Error calling function: \(error.localizedDescription)")
                 completion(.failure(error))
-                print("Error calling function: \(error.localizedDescription)")
+                return
             }
             
-            if let responseText = result?.data as? String {
-                print("Successfully got response: \(responseText)")
-                completion(.success(responseText))
-            } else {
-                print("Unexpected response format. Result data: \(result?.data ?? "nil")")
+            guard let responseText = result?.data as? String else {
+                NetworkingLogger.log("LanguageModelAPIService: Unexpected response format. Result data: \(String(describing: result?.data))")
+                completion(.failure(NSError(domain: "UnexpectedResponse", code: -1, userInfo: [NSLocalizedDescriptionKey: "Unexpected response format."])))
+                return
             }
+            
+            NetworkingLogger.log("LanguageModelAPIService: Successfully got response: \(responseText)")
+            completion(.success(responseText))
         }
     }
     
