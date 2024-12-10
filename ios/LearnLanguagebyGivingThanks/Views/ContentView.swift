@@ -7,13 +7,21 @@
 
 import SwiftUI
 import Combine
+import SwiftData
 
 struct ContentView: View {
+    @Environment(\.modelContext) private var context
+    
+    @Query var schedule: [NotificationSchedule]
+    @Query var userSettings: [UserSettings]
+    
     @State var language: Language = .kr
     @State var text: String = ""
-    @State var scheduleTime: Date = Date()
+    
+    @State var scheduleTime: DateComponents = DateComponents()
     @State var repeatSchedule: RepeatSchedule = .daily
     @State var reminderToggle: Bool = false
+    @State var selectedDays: [Day] = []
 
     @State private var keyboardHeight: CGFloat = 0 // Track keyboard height
     @State private var cancellables = Set<AnyCancellable>()
@@ -41,7 +49,7 @@ struct ContentView: View {
                 PickerView(selectedLanguage: $language)
                     .pickerStyle(.menu)
                 Spacer()
-                ReminderPickerLabel(scheduleTime: scheduleTime, showDatePickerPopUp: $showDatePickerPopUp)
+                ReminderPickerLabel(showDatePickerPopUp: $showDatePickerPopUp)
             }
             .frame(height: 50)
             
@@ -121,7 +129,7 @@ struct ContentView: View {
             .padding(.bottom, 10)
         }
         .padding(.horizontal, 15)
-        .onAppear {
+        .task {
             setupKeyboardObservers()
         }
         .onChange(of: language) { original, newLanguage in
@@ -135,7 +143,7 @@ struct ContentView: View {
             }
         } // // Add a new message showing 'loading' when fetching.
         .sheet(isPresented: $showDatePickerPopUp){
-            ReminderPopUp(scheduleTime: $scheduleTime, repeatSchedule: $repeatSchedule, language: language)
+            ReminderPopUp(language: language)
         }
     }
     
@@ -184,6 +192,62 @@ struct ContentView: View {
             .map { _ in CGFloat(0) }
             .sink { self.keyboardHeight = $0 }
             .store(in: &cancellables)
+    }
+}
+
+struct ReminderPickerLabel: View {
+    @Query(sort: \NotificationSchedule.weekday, order: .forward)
+    var schedule: [NotificationSchedule]
+    
+    var time: String {
+        let hourValue = schedule.first?.hour ?? 0
+        let minute = schedule.first?.minute ?? 0
+        let formatter = DateFormatter()
+        formatter.dateFormat = "h:mm a" // Format for 12-hour time with AM/PM
+        
+        // Create a Date object for today at the specified hour
+        let date = Calendar.current.date(bySettingHour: hourValue, minute: minute, second: 0, of: Date()) ?? Date()
+        
+        // Format the date to get the hour and AM/PM
+        return formatter.string(from: date)
+    }
+    
+    @Query var userSettings: [UserSettings]
+
+    @State var selectedDays: [String] = []
+    @Binding var showDatePickerPopUp: Bool
+    
+    var body: some View {
+        HStack (alignment: .center) {
+            Spacer()
+            if !schedule.isEmpty {
+                Text("\(String(describing: schedule.first!.repeatSchedule.rawValue.capitalized)) \(selectedDays.joined(separator: ", "))")
+                    .font(.callout)
+                    .fontWeight(.light)
+                    .multilineTextAlignment(.trailing)
+            }
+            VStack (alignment: .trailing) {
+                Button {
+                    showDatePickerPopUp.toggle()
+                } label: {
+                    if userSettings.first?.isReminderOn ?? false {
+                        VStack {
+                            Text("\(time)")
+                        }
+                    } else {
+                        Text("Set a Daily Reminder")
+                            .font(.callout)
+                            .multilineTextAlignment(.trailing)
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .onChange(of: schedule) {
+            self.selectedDays = schedule.compactMap {
+                Day.from(weekdayNumber: $0.weekday)?.string.first?.description
+            }
+        }
     }
 }
 

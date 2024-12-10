@@ -7,6 +7,7 @@
 
 import SwiftUI
 import FirebaseCore
+import SwiftData
 
 class AppDelegate: NSObject, UIApplicationDelegate {
   func application(_ application: UIApplication,
@@ -23,6 +24,10 @@ struct LearnLanguagebyGivingThanksApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView(language: .kr)
+                .modelContainer(for: [
+                    NotificationSchedule.self,
+                    UserSettings.self
+                ])
         }
     }
 }
