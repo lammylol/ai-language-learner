@@ -176,6 +176,7 @@ struct ReminderPopUp: View {
 }
 
 struct WeekdayPicker: View {
+    @Environment(\.colorScheme) var colorScheme
     @Binding var selectedDays: [Day]
     
     var body: some View {
@@ -184,7 +185,7 @@ struct WeekdayPicker: View {
                 Text(String(day.rawValue.first!))
                     .frame(width: 40, height: 40)
                     .background(selectedDays.contains(day) ? Color.cyan.cornerRadius(10) : Color(UIColor.systemGray6).cornerRadius(10))
-                    .foregroundStyle(selectedDays.contains(day) ? Color.white : Color.black)
+                    .foregroundStyle(selectedDays.contains(day) ? (colorScheme == .dark ? Color(UIColor.systemGray6) : Color.white ) : (colorScheme == .dark ? Color.white : Color.black))
                     .onTapGesture {
                         if selectedDays.contains(day) {
                             selectedDays.removeAll(where: {$0 == day})
