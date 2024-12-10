@@ -20,17 +20,23 @@ enum SenderType: String, Codable {
 
 @Observable class MessageModel {
     public var messages: [Message] = []
+    public var aiMessageHistory: [Message] = [] // this is to collect the message history sent back to chatGPT. Separate from the messages saved locally.
+    public var aiMessageHistoryMaxCount: Int = 3
+    
     public var language: Language
     
     init(language: Language) {
         self.language = language
-        self.messages = [Message(text: "Hi there! I'm here to help you learn \(language.description.capitalized) by asking you what you're grateful for each day. Don't worry if you get it wrong; I'll be here to help you out! Let's begin.\n\nWhat are you grateful for today? \(language.welcomeMessage)", senderType: .bot)]
+        let messageText = "Hi there! I'm here to help you learn \(language.description.capitalized) by asking you what you're grateful for each day. Don't worry if you get it wrong; I'll be here to help you out! Let's begin.\n\nWhat are you grateful for today? \(language.welcomeMessage)"
+        let formattedText = messageText.trimmingCharacters(in: .whitespacesAndNewlines)
+        self.messages = [Message(text: formattedText, senderType: .bot)]
     }
     
     func addMessage(_ message: Message) {
-        if messages.count > 3 {
-            messages.removeFirst()
+        if aiMessageHistory.count > 3 {
+            aiMessageHistory.removeFirst()
         }
         messages.append(message)
+        aiMessageHistory.append(message)
     }
 }

@@ -23,11 +23,12 @@ struct LearnLanguagebyGivingThanksApp: App {
     
     var body: some Scene {
         WindowGroup {
-            ContentView(language: .kr)
+            ContentView()
                 .modelContainer(for: [
                     NotificationSchedule.self,
                     UserSettings.self
                 ])
+                .environment(ContentViewModel(language: .kr))
         }
     }
 }

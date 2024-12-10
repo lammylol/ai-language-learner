@@ -11,11 +11,11 @@ import SwiftData
 
 struct ContentView: View {
     @Environment(\.modelContext) private var context
+    @Environment(ContentViewModel.self) var viewModel
     
     @Query var schedule: [NotificationSchedule]
     @Query var userSettings: [UserSettings]
     
-    @State var language: Language = .kr
     @State var text: String = ""
     
     @State var scheduleTime: DateComponents = DateComponents()
@@ -27,10 +27,7 @@ struct ContentView: View {
     @State private var cancellables = Set<AnyCancellable>()
     
     private var languageAPIService: LanguageModelAPIService = LanguageModelAPIService()
-    private var messageModel: MessageModel
     
-    @State var isFetching: Bool = false
-    @State var isFinished: Bool = false
     @FocusState var isTextEditorFocused: Bool
     @State var showDatePickerPopUp: Bool = false
     
@@ -38,15 +35,10 @@ struct ContentView: View {
     @State private var keyboardWillShow: AnyCancellable?
     @State private var keyboardWillHide: AnyCancellable?
     
-    init(language: Language) {
-        self.language = language
-        self.messageModel = MessageModel(language: language)
-    }
-    
     var body: some View {
         VStack (alignment: .leading) {
             HStack {
-                PickerView(selectedLanguage: $language)
+                LanguagePicker()
                     .pickerStyle(.menu)
                 Spacer()
                 ReminderPickerLabel(showDatePickerPopUp: $showDatePickerPopUp)
@@ -55,26 +47,28 @@ struct ContentView: View {
             
             ScrollViewReader { proxy in
                 ScrollView {
-                    ForEach(messageModel.messages) { message in
-                        MessageView(message: message)
+                    ForEach(viewModel.messageModel.messages) { message in
+                            MessageView(message: message)
                             .id(message.id)
+                            .allowsHitTesting(true)
                     }
                 }
+                .textSelection(.enabled)
                 .layoutPriority(1)
                 .scrollIndicators(.hidden)
                 .scrollDismissesKeyboard(.interactively)
                 .safeAreaPadding(.bottom)
-                .onChange(of: messageModel.messages.count) {
+                .onChange(of: viewModel.messageModel.messages.count) {
                     // Scroll to the bottom whenever a new message is added
-                    if let lastMessage = messageModel.messages.last {
+                    if let lastMessage = viewModel.messageModel.messages.last {
                         withAnimation(.easeInOut(duration: 0.5)) {
                             proxy.scrollTo(lastMessage.id, anchor: .bottom) // Scroll to last message
                         }
                     }
                 } // Scroll to bottom when new message is added.
-                .onChange(of: isTextEditorFocused) { old, new in
+                .onChange(of: isTextEditorFocused) {
                     DispatchQueue.main.async {
-                        if let lastMessage = messageModel.messages.last {
+                        if let lastMessage = viewModel.messageModel.messages.last {
                             withAnimation(.easeInOut(duration: 0.5)) {
                                 proxy.scrollTo(lastMessage.id, anchor: .bottom) // Scroll to last message
                             }
@@ -96,10 +90,10 @@ struct ContentView: View {
                             RoundedRectangle(cornerRadius: 16)
                                 .stroke(Color(.systemGray4), lineWidth: 1) // Optional border
                         )
-                        .environment(\.locale, Locale(identifier: language.localeIdentifier))
+                        .environment(\.locale, Locale(identifier: viewModel.language.localeIdentifier))
                     
                     if text.isEmpty {
-                        Text(language.enterMessage)
+                        Text(viewModel.language.enterMessage)
                             .foregroundStyle(.secondary).fontWeight(.light)
                             .padding(.leading, 10)
                             .padding(.bottom, 2)
@@ -109,10 +103,10 @@ struct ContentView: View {
                     submit()
                 } label: {
                     VStack {
-                        Image(systemName: isFetching ? "square.fill" : "arrowshape.up.fill")
+                        Image(systemName: viewModel.isFetching ? "square.fill" : "arrowshape.up.fill")
                             .resizable()  // Make the image resizable
                             .aspectRatio(contentMode: .fit)  // Maintain the aspect ratio
-                            .padding(isFetching ? 10 : 7)
+                            .padding(viewModel.isFetching ? 10 : 7)
                             .background(
                                 Circle()
                                     .fill(text.isEmpty ? Color.gray : Color.blue) // Circle color
@@ -129,21 +123,17 @@ struct ContentView: View {
             .padding(.bottom, 10)
         }
         .padding(.horizontal, 15)
-        .task {
-            setupKeyboardObservers()
-        }
-        .onChange(of: language) { original, newLanguage in
-            if messageModel.messages.first != nil {
-                messageModel.messages[0].text = "Hi there! I'm here to help you learn \(language.description.capitalized) by asking you what you're grateful for each day. Don't worry if you get it wrong; I'll be here to help you out! Let's begin.\n\nWhat are you grateful for today? \(language.welcomeMessage)"
-            }
+        .onChange(of: viewModel.language) {
+            viewModel.onLanguageChange()
         } // Change language translation when language changes.
-        .onChange(of: isFetching) { first, second in
-            if isFetching {
-                messageModel.messages.append(Message(text: "fetching...", senderType: .bot))
-            }
+        .onChange(of: viewModel.isFetching) {
+            viewModel.onChangeOfFetching()
         } // // Add a new message showing 'loading' when fetching.
+        .onChange(of: viewModel.date) {
+            viewModel.onDateChange()
+        }
         .sheet(isPresented: $showDatePickerPopUp){
-            ReminderPopUp(language: language)
+            ReminderPopUp(language: viewModel.language)
         }
     }
     
@@ -151,31 +141,35 @@ struct ContentView: View {
         Task {
             let prompt = text
             text = ""
-            messageModel.messages.append(Message(text: prompt, senderType: .user))
+            viewModel.messageModel.addMessage(Message(text: prompt, senderType: .user))
             isTextEditorFocused = false
-            
-            do {
-                isFetching = true
-                defer { isFetching = false }
-                
-                // system instruction setting
-                var systemInstruction: String?
-                systemInstruction = "The user is trying to learn \(language.description). Please provide them with corrections to their answer to the prompt 'what are you grateful for?'. Please respond to them in English."
-                
-                // response from model
-                let response = try await languageAPIService.languageHelper(systemInstruction: systemInstruction ?? "", messages: messageModel.messages)
-                    
-                if messageModel.messages.last?.text == "fetching..." {
-                    messageModel.messages.removeLast()
-                }
-                messageModel.messages.append(Message(text: response.trimmingCharacters(in: .whitespacesAndNewlines), senderType: .bot))
-                print("AI Response: \(response)")
-            } catch {
-                text = ""
-                messageModel.messages.append(Message(text: "Error: \(error.localizedDescription)", senderType: .bot))
-                print("Error: \(error.localizedDescription)")
-            }
+
+            let response = await fetchHelper()
+            viewModel.onChangeOfFetching()
+            viewModel.messageModel.addMessage(Message(text: response, senderType: .bot))
         }
+        print(viewModel.messageModel.messages.count)
+    }
+    
+    func fetchHelper() async -> String {
+        viewModel.isFetching = true
+        defer { viewModel.isFetching = false }
+        
+        var response = ""
+        print(viewModel.isFetching)
+        
+        do {
+            // system instruction setting
+            var systemInstruction: String?
+            systemInstruction = "The user is trying to learn \(viewModel.language.description). Please provide them with corrections to their answer to the prompt 'what are you grateful for?'. Please respond to them in English."
+            
+            // response from model
+            response = try await languageAPIService.languageHelper(systemInstruction: systemInstruction ?? "", messages: viewModel.messageModel.aiMessageHistory).trimmingCharacters(in: .whitespacesAndNewlines)
+        } catch {
+            response = "Error: \(error.localizedDescription)"
+        }
+        
+        return response
     }
     
     func setupKeyboardObservers() {
@@ -261,20 +255,21 @@ struct MessageView: View {
             if message.senderType == .user {
                 Spacer()
             }
-            VStack (alignment: .leading) {
+            VStack {
                 Text(message.text)
                     .foregroundStyle(
                         colorScheme == .dark
                         ? .white
                         : message.senderType == .bot ? .black : .white
                     )
-                    .background(Color.clear)
-                    .textSelection(.enabled)
-                    .padding(.all, 15)
-                    .background(message.senderType == .bot
-                                ? Color(.systemGray6)
-                                : Color.secondary) // Bubble background color
+                    .padding(15)
+                    .background(
+                        message.senderType == .bot
+                        ? Color(.systemGray6) // Background color for bot messages
+                        : Color.secondary // Default background for other sender types
+                    )
                     .cornerRadius(16)
+                    .multilineTextAlignment(.leading)
             }
             .padding(message.senderType == .bot ? .trailing : .leading, 60)
             
@@ -282,18 +277,21 @@ struct MessageView: View {
                 Spacer()
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
-struct PickerView: View {
-    @Binding var selectedLanguage: Language
+struct LanguagePicker: View {
+    @Environment(ContentViewModel.self) var viewModel
     
     var body: some View {
+        @Bindable var viewModel = viewModel
+        
         HStack(alignment: .center, spacing: 0) {
             Image(systemName: "globe")
                 .imageScale(.large)
                 .foregroundStyle(.tint)
-            Picker("Language", selection: $selectedLanguage) {
+            Picker("Language", selection: $viewModel.language) {
                 ForEach(Language.allCases, id: \.self) { language in
                     Text(language.description.capitalized)
                 }
@@ -360,5 +358,10 @@ enum Language: String, CaseIterable {
 }
 
 #Preview {
-    ContentView(language: .kr)
+    ContentView()
+        .environment(ContentViewModel(language: .kr))
+}
+
+#Preview {
+    MessageView(message: Message(text: "Hi there! I'm here to help you learn Korean by asking you what you're thankful for today. ashdjkasdhjkasdhjkasdhjkashdjkashdkjashdjkashdjaskdhasjkdhjkasd", senderType: .bot))
 }
