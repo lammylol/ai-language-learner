@@ -26,8 +26,12 @@ final class NotificationSchedule {
 @Model
 class UserSettings {
     var isReminderOn: Bool
+    var selectedPrompt: QuestionPrompt?
+    var language: Language
     
-    init(isReminderOn: Bool = false) {
+    init(isReminderOn: Bool = false, language: Language, selectedPrompt: QuestionPrompt? = nil) {
         self.isReminderOn = isReminderOn
+        self.selectedPrompt = selectedPrompt
+        self.language = language
     }
 }

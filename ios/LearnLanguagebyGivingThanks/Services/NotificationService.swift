@@ -25,10 +25,6 @@ class NotificationService {
         }
     }
     
-    func fetchExistingNotificationSchedule(context: ModelContext) {
-        
-    }
-    
     func getNotificationSettings() {
         let notificationCenter = UNUserNotificationCenter.current()
         

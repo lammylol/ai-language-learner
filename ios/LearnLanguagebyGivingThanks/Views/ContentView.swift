@@ -10,6 +10,7 @@ import Combine
 import SwiftData
 
 struct ContentView: View {
+    @AppStorage("isWelcomeSheetShowing") var isWelcomeSheetShowing = true
     @Environment(\.modelContext) private var context
     @Environment(ContentViewModel.self) var viewModel
     
@@ -135,6 +136,9 @@ struct ContentView: View {
         .sheet(isPresented: $showDatePickerPopUp){
             ReminderPopUp(language: viewModel.language)
         }
+        .onAppear {
+            viewModel.language = userSettings.first?.selectedLanguage
+        }
     }
     
     func submit() {
@@ -259,14 +263,14 @@ struct MessageView: View {
                 Text(message.text)
                     .foregroundStyle(
                         colorScheme == .dark
-                        ? .white
+                        ? message.senderType == .bot ? .white : .black
                         : message.senderType == .bot ? .black : .white
                     )
-                    .padding(15)
+                    .padding(12)
                     .background(
                         message.senderType == .bot
                         ? Color(.systemGray6) // Background color for bot messages
-                        : Color.secondary // Default background for other sender types
+                        : colorScheme == .dark ? Color.white : Color.black // Default background for other sender types
                     )
                     .cornerRadius(16)
                     .multilineTextAlignment(.leading)
@@ -314,53 +318,53 @@ struct LanguagePicker: View {
     }
 }
 
-enum Language: String, CaseIterable {
-    case us
-    case sp
-    case kr
-    case ch
+struct promptSelector: View {
+    @Query var userSettings: [UserSettings]
+
+    @State var selectedDays: [String] = []
+    @Binding var showDatePickerPopUp: Bool
     
-    var localeIdentifier: String {
-        switch self {
-        case .us: return "en_US"
-        case .sp: return "es_ES"
-        case .kr: return "ko_KR"
-        case .ch: return "zh_CN"
+    var body: some View {
+        HStack (alignment: .center) {
+            Spacer()
+            if !schedule.isEmpty {
+                Text("\(String(describing: schedule.first!.repeatSchedule.rawValue.capitalized)) \(selectedDays.joined(separator: ", "))")
+                    .font(.callout)
+                    .fontWeight(.light)
+                    .multilineTextAlignment(.trailing)
+            }
+            VStack (alignment: .trailing) {
+                Button {
+                    showDatePickerPopUp.toggle()
+                } label: {
+                    if userSettings.first?.isReminderOn ?? false {
+                        VStack {
+                            Text("\(time)")
+                        }
+                    } else {
+                        Text("Set a Daily Reminder")
+                            .font(.callout)
+                            .multilineTextAlignment(.trailing)
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .onChange(of: schedule) {
+            self.selectedDays = schedule.compactMap {
+                Day.from(weekdayNumber: $0.weekday)?.string.first?.description
+            }
         }
     }
     
-    var description: String {
-        switch self {
-        case .us: return "english"
-        case .sp: return "spanish"
-        case .kr: return "korean"
-        case .ch: return "chinese"
-        }
-    }
-    
-    var welcomeMessage: String {
-        switch self {
-        case .us: return ""
-        case .sp: return "¿Qué te gusta hoy?"
-        case .kr: return "오늘 무엇을 감사하세요?"
-        case .ch: return "今天感谢什么?"
-        }
-    }
-    
-    var enterMessage: String {
-        switch self {
-        case .us: return "Enter Message"
-        case .sp: return "Enter Message. Escribe un mensaje!"
-        case .kr: return "Enter Message. 메시지 입력!"
-        case .ch: return "Enter Message. 输入消息!"
-        }
-    }
+    private func updateStateFromLocalData() async {
+        reminderToggle = userSettings.first?.isReminderOn ?? false
 }
 
-#Preview {
-    ContentView()
-        .environment(ContentViewModel(language: .kr))
-}
+//#Preview {
+//    ContentView()
+//        .environment(ContentViewModel(language: .kr))
+//}
 
 #Preview {
     MessageView(message: Message(text: "Hi there! I'm here to help you learn Korean by asking you what you're thankful for today. ashdjkasdhjkasdhjkasdhjkashdjkashdkjashdjkashdjaskdhasjkdhjkasd", senderType: .bot))

@@ -28,7 +28,7 @@ struct LearnLanguagebyGivingThanksApp: App {
                     NotificationSchedule.self,
                     UserSettings.self
                 ])
-                .environment(ContentViewModel(language: .kr))
+                .environment(ContentViewModel(language: .kr, questionPrompt: QuestionPrompt.gratitude))
         }
     }
 }
