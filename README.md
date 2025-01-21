@@ -18,11 +18,12 @@ I encourage you to try this with any language you’re learning!
 ## Features
 
 ### 1. Gratitude Prompt
-![Gratitude Prompt](path-to-your-image1.png)
+<img width="1267" alt="Screenshot 2025-01-06 at 3 28 27 PM" src="https://github.com/user-attachments/assets/43d7972c-9b86-46a2-a854-168b7c27e934" />
+
 *App screen to prompt user to input what they're grateful for today, and a generated response suggesting corrections and improvements.*
 
 ### 2. Customizable Reminders
-![Customizable Reminders](path-to-your-image2.png)
+<img width="1206" alt="Screenshot 2025-01-06 at 5 59 42 PM" src="https://github.com/user-attachments/assets/26b31758-66f3-4cff-ac0f-48a0a8369961" />
 *Ability to add and set reminders on a given cadence; Daily or weekly by selected days.*
 
 ---
@@ -30,8 +31,3 @@ I encourage you to try this with any language you’re learning!
 ## Learn More
 
 Read more about the development journey on LinkedIn: [Building an AI App to Help Me Learn Korean](https://www.linkedin.com/pulse/building-ai-app-help-me-learn-korean-matt-lam-k3n3c/?trackingId=9tlV6b%2BvvoNXMl3tJ%2B0vNQ%3D%3D)
-
-## Screenshots
-<p align="left">
-  <img src="https://github.com/user-attachments/assets/1165ac6d-dce2-48c1-a9fa-a98beda9d6b3" alt="Screenshot" width="300">
-</p>
