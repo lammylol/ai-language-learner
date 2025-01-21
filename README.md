@@ -23,7 +23,8 @@ I encourage you to try this with any language you’re learning!
 *App screen to prompt user to input what they're grateful for today, and a generated response suggesting corrections and improvements.*
 
 ### 2. Customizable Reminders
-<img width="1206" alt="Screenshot 2025-01-06 at 5 59 42 PM" src="https://github.com/user-attachments/assets/26b31758-66f3-4cff-ac0f-48a0a8369961" />
+<img width="1189" alt="Screenshot 2025-01-06 at 3 30 28 PM" src="https://github.com/user-attachments/assets/aa731417-222a-48b0-bd4b-226c7e437d94" />
+
 *Ability to add and set reminders on a given cadence; Daily or weekly by selected days.*
 
 ---
