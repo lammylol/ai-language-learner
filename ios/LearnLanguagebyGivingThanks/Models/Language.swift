@@ -5,8 +5,7 @@
 //  Created by Matt Lam on 1/10/25.
 //
 
-
-enum Language: String, CaseIterable {
+enum Language: String, CaseIterable, Codable {
     case us
     case sp
     case kr

@@ -105,9 +105,7 @@ class NotificationService {
     
     func getSchedule(time: DateComponents, selectedDays: [Day]) -> [DateComponents] {
         var schedule: [DateComponents] = []
-        
-        print(schedule.count)
-        
+
         for day in selectedDays {
             var dateComponents = DateComponents()
             dateComponents.calendar = Calendar.current
@@ -115,9 +113,7 @@ class NotificationService {
             dateComponents.weekday = day.weekdayNumber
             dateComponents.hour = time.hour
             dateComponents.minute = time.minute
-            
-            print(dateComponents.hour ?? 0)
-            
+
             schedule.append(dateComponents)
         }
         
@@ -131,8 +127,19 @@ class NotificationService {
         let notification = NotificationSchedule(weekday: day, hour: hour, minute: minute, repeatSchedule: repeatSchedule)
     
         do {
-            context.insert(notification)
+            // Fetch the existing UserSettings object
+            let settingsFetch = try context.fetch(FetchDescriptor<UserSettings>())
+
+            if let userSettings = settingsFetch.first {
+                userSettings.notificationSchedules = (userSettings.notificationSchedules ?? []) + [notification]
+            } else {
+                let newUserSettings = UserSettings(isReminderOn: true, language: .kr, notificationSchedules: [notification])
+                context.insert(newUserSettings)
+            }
+            
+            try context.save()
             ViewLogger.log("NotificationService: Successfully saved notification locally: \(notification.weekday), \(notification.hour):\(notification.minute)")
+            
         } catch {
             ViewLogger.log("NotificationService: Error saving notification locally: \(error)")
         }
@@ -140,17 +147,23 @@ class NotificationService {
     
     func deleteAllNotifications(context: ModelContext) {
         do {
-            // Delete from SwiftData context
-            let allNotifications = try context.fetch(FetchDescriptor<NotificationSchedule>())
-            for notification in allNotifications {
-                context.delete(notification)
+            // Fetch the UserSettings object
+            let settingsFetch = try context.fetch(FetchDescriptor<UserSettings>())
+            
+            if let userSettings = settingsFetch.first {
+                // Clear notification schedules in UserSettings
+                userSettings.notificationSchedules?.removeAll()
+                
+                // Save changes to SwiftData
+                try context.save()
             }
             
-            // Delete from UserNotificationCenter
-            UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
-            UNUserNotificationCenter.current().removeAllDeliveredNotifications()
+            // Remove all notifications from UserNotificationCenter
+            let notificationCenter = UNUserNotificationCenter.current()
+            notificationCenter.removeAllPendingNotificationRequests()
+            notificationCenter.removeAllDeliveredNotifications()
             
-            ViewLogger.log("NotificationService: Successfully deleted all notifications from local storage and system notifications.")
+            ViewLogger.log("NotificationService: Successfully deleted all notifications from UserSettings and system notifications.")
         } catch {
             ViewLogger.log("NotificationService: Error deleting notifications. \(error)")
         }

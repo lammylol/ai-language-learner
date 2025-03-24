@@ -9,13 +9,11 @@ import SwiftUI
 import SwiftData
 
 struct ReminderPopUp: View {
-//    @Query(sort: \NotificationSchedule.weekday, order: .forward)
-    @Query var schedule: [NotificationSchedule]
     @Query var userSettings: [UserSettings]
-    
+
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) var dismiss
-//    
+    
     @State var scheduleTime: DateComponents = DateComponents()
     @State var repeatSchedule: RepeatSchedule = .daily
     @State var language: Language
@@ -28,6 +26,10 @@ struct ReminderPopUp: View {
     
     let notificationService = NotificationService()
     
+    var notificationSchedules: [NotificationSchedule] {
+        userSettings.first?.notificationSchedules ?? []
+    }
+
     var body: some View {
         NavigationStack {
             Form {
@@ -52,15 +54,12 @@ struct ReminderPopUp: View {
             }
             .toolbar {
                 ToolbarItemGroup(placement: .topBarLeading) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                    .bold()
+                    Button("Cancel") { dismiss() }
+                        .bold()
                 }
                 ToolbarItemGroup(placement: .topBarTrailing) {
-                    Button(action: {setDate()}) {
-                        Text("Save")
-                            .bold()
+                    Button(action: { setDate() }) {
+                        Text("Save").bold()
                     }
                 }
             }
@@ -71,7 +70,7 @@ struct ReminderPopUp: View {
                     notificationService.getNotificationSettings()
                 }
             }
-            .navigationTitle("Set Reminder" )
+            .navigationTitle("Set Reminder")
             .navigationBarTitleDisplayMode(.inline)
         }
     }
@@ -79,7 +78,6 @@ struct ReminderPopUp: View {
     @MainActor
     func setDate() {
         Task {
-            // Check notification authorization, request if not authorized
             let center = UNUserNotificationCenter.current()
             let settings = await center.notificationSettings()
             
@@ -93,10 +91,8 @@ struct ReminderPopUp: View {
                 return
             }
             
-            // update reminder toggle
-            updateReminderToggle()
+            updateReminderToggle(reminderToggle: reminderToggle)
             
-            // If reminders are disabled, delete all notifications and exit
             guard reminderToggle else {
                 notificationService.deleteAllNotifications(context: context)
                 dismiss()
@@ -104,8 +100,7 @@ struct ReminderPopUp: View {
             }
             
             updateTempStateFromValues()
-            
-            // Configure the notification
+
             do {
                 try await notificationService.configureNotification(
                     title: "What Are You Grateful For Today?",
@@ -123,55 +118,55 @@ struct ReminderPopUp: View {
         }
     }
     
-    
     private func updateStateFromLocalData() async {
         reminderToggle = userSettings.first?.isReminderOn ?? false
         
-        if !schedule.isEmpty {
+        if !notificationSchedules.isEmpty {
             var dateComponents = DateComponents()
-            dateComponents.hour = schedule.first?.hour
-            dateComponents.minute = schedule.first?.minute
+            dateComponents.hour = notificationSchedules.first?.hour
+            dateComponents.minute = notificationSchedules.first?.minute
             
-            // Assuming `self.tempDate` is declared as a `Date?`
             if let fullDate = Calendar.current.date(from: dateComponents) {
                 self.tempDate = fullDate
             }
             
-            self.tempRepeat = schedule.first?.repeatSchedule ?? .daily
+            self.tempRepeat = notificationSchedules.first?.repeatSchedule ?? .daily
             
-            self.selectedDays = schedule.compactMap {
-                Day.from(weekdayNumber: $0.weekday)
+            selectedDays = notificationSchedules.compactMap { schedule in
+                Day.from(weekdayNumber: schedule.weekday)
             }
             
-            ViewLogger.log("ContentView: updated state variables")
+            ViewLogger.log("ReminderPopUp: updated state variables")
         }
     }
     
     func updateTempStateFromValues() {
-        
-        // update schedule time
-        var calendar = Calendar.current
-        calendar.timeZone = TimeZone.current
-        let time = calendar.dateComponents([.hour,.minute], from: tempDate)
+        let calendar = Calendar.current
+        let time = calendar.dateComponents([.hour, .minute], from: tempDate)
         
         scheduleTime.hour = time.hour
         scheduleTime.minute = time.minute
-        
         repeatSchedule = tempRepeat
+        
         if repeatSchedule == .daily {
             selectedDays = []
         }
+        
+        if let existingSettings = userSettings.first {
+            existingSettings.notificationSchedules = [
+                NotificationSchedule(
+                    weekday: scheduleTime.weekday ?? 1, // Ensure you set a weekday
+                    hour: scheduleTime.hour ?? 0,
+                    minute: scheduleTime.minute ?? 0,
+                    repeatSchedule: repeatSchedule
+                )
+            ]
+            try? context.save()
+        }
     }
     
-    func updateReminderToggle() {
-        if let existingSettings = userSettings.first {
-            existingSettings.isReminderOn = reminderToggle
-            print("updated reminderToggle: \(reminderToggle)")
-        } else {
-            let newSettings = UserSettings(isReminderOn: true)
-            context.insert(newSettings)
-            print("added reminderToggle: \(reminderToggle)")
-        }
+    func updateReminderToggle(reminderToggle: Bool) {
+        userSettings.first?.isReminderOn = reminderToggle
     }
 }
 
@@ -196,46 +191,6 @@ struct WeekdayPicker: View {
             }
         }
         .frame(maxWidth: .infinity)
-    }
-}
-
-enum Day: String, CaseIterable, Codable {
-    case Sunday, Monday, Tuesday, Wednesday, Thursday, Friday, Saturday
-    
-    var weekdayNumber: Int {
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "EEEE" // Full day name
-        if let date = dateFormatter.date(from: rawValue) {
-            let calendar = Calendar.current
-            return calendar.component(.weekday, from: date)
-        }
-        return 0
-    }
-
-    static func from(weekdayNumber: Int) -> Day? {
-        switch weekdayNumber {
-        case 1: return .Sunday
-        case 2: return .Monday
-        case 3: return .Tuesday
-        case 4: return .Wednesday
-        case 5: return .Thursday
-        case 6: return .Friday
-        case 7: return .Saturday
-        default: return nil
-        }
-    }
-    
-    var string: String {
-        rawValue
-    }
-}
-
-enum RepeatSchedule: String, CaseIterable, Codable {
-    case daily = "daily"
-    case weekly = "weekly"
-    
-    init(from rawValue: String) {
-        self = RepeatSchedule(rawValue: rawValue) ?? .daily
     }
 }
 
