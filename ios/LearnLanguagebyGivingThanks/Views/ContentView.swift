@@ -10,10 +10,10 @@ import Combine
 import SwiftData
 
 struct ContentView: View {
+    @AppStorage("isWelcomeSheetShowing") var isWelcomeSheetShowing = true
     @Environment(\.modelContext) private var context
     @Environment(ContentViewModel.self) var viewModel
-    
-    @Query var schedule: [NotificationSchedule]
+
     @Query var userSettings: [UserSettings]
     
     @State var text: String = ""
@@ -21,7 +21,6 @@ struct ContentView: View {
     @State var scheduleTime: DateComponents = DateComponents()
     @State var repeatSchedule: RepeatSchedule = .daily
     @State var reminderToggle: Bool = false
-    @State var selectedDays: [Day] = []
 
     @State private var keyboardHeight: CGFloat = 0 // Track keyboard height
     @State private var cancellables = Set<AnyCancellable>()
@@ -135,6 +134,13 @@ struct ContentView: View {
         .sheet(isPresented: $showDatePickerPopUp){
             ReminderPopUp(language: viewModel.language)
         }
+        .onAppear {
+            if userSettings.isEmpty {
+                context.insert(UserSettings())
+                try? context.save() // Save the new settings
+            }
+            viewModel.selectedLanguage = userSettings.first?.language ?? .kr
+        }
     }
     
     func submit() {
@@ -190,41 +196,51 @@ struct ContentView: View {
 }
 
 struct ReminderPickerLabel: View {
-    @Query(sort: \NotificationSchedule.weekday, order: .forward)
-    var schedule: [NotificationSchedule]
+    @Query var userSettings: [UserSettings]
     
+    @Binding var showDatePickerPopUp: Bool
+    
+    // Get notificationSchedules.
+    var notificationSchedules: [NotificationSchedule]? {
+        userSettings.first?.notificationSchedules
+    }
+    
+    // Get notificationSchedule first.
+    var selectedDayInitials: [String] {
+        userSettings.first?.notificationSchedules?.compactMap { schedule in
+            Day.from(weekdayNumber: schedule.weekday)?.rawValue.prefix(1).uppercased()
+        } ?? []
+    }
+    
+    // Only pick up time from notificationSchedule.
     var time: String {
-        let hourValue = schedule.first?.hour ?? 0
-        let minute = schedule.first?.minute ?? 0
+        guard let schedule = notificationSchedules?.first else { return "12:00 AM" }
+        
+        let hourValue = schedule.hour
+        let minute = schedule.minute
         let formatter = DateFormatter()
         formatter.dateFormat = "h:mm a" // Format for 12-hour time with AM/PM
         
         // Create a Date object for today at the specified hour
         let date = Calendar.current.date(bySettingHour: hourValue, minute: minute, second: 0, of: Date()) ?? Date()
         
-        // Format the date to get the hour and AM/PM
         return formatter.string(from: date)
     }
     
-    @Query var userSettings: [UserSettings]
-
-    @State var selectedDays: [String] = []
-    @Binding var showDatePickerPopUp: Bool
-    
     var body: some View {
-        HStack (alignment: .center) {
+        HStack(alignment: .center) {
             Spacer()
-            if !schedule.isEmpty {
-                Text("\(String(describing: schedule.first!.repeatSchedule.rawValue.capitalized)) \(selectedDays.joined(separator: ", "))")
+            if let schedule = notificationSchedules?.first {
+                Text("\(schedule.repeatSchedule.rawValue.capitalized) \(selectedDayInitials.joined(separator: ", "))")
                     .font(.callout)
                     .fontWeight(.light)
                     .multilineTextAlignment(.trailing)
             }
-            VStack (alignment: .trailing) {
+            VStack(alignment: .trailing) {
                 Button {
                     showDatePickerPopUp.toggle()
                 } label: {
-                    if userSettings.first?.isReminderOn ?? false {
+                    if userSettings.first?.isReminderOn == true {
                         VStack {
                             Text("\(time)")
                         }
@@ -237,13 +253,9 @@ struct ReminderPickerLabel: View {
             }
         }
         .frame(maxWidth: .infinity)
-        .onChange(of: schedule) {
-            self.selectedDays = schedule.compactMap {
-                Day.from(weekdayNumber: $0.weekday)?.string.first?.description
-            }
-        }
     }
 }
+
 
 struct MessageView: View {
     @Environment(\.colorScheme) var colorScheme
@@ -259,14 +271,14 @@ struct MessageView: View {
                 Text(message.text)
                     .foregroundStyle(
                         colorScheme == .dark
-                        ? .white
+                        ? message.senderType == .bot ? .white : .black
                         : message.senderType == .bot ? .black : .white
                     )
-                    .padding(15)
+                    .padding(12)
                     .background(
                         message.senderType == .bot
                         ? Color(.systemGray6) // Background color for bot messages
-                        : Color.secondary // Default background for other sender types
+                        : colorScheme == .dark ? Color.white : Color.black // Default background for other sender types
                     )
                     .cornerRadius(16)
                     .multilineTextAlignment(.leading)
@@ -314,53 +326,10 @@ struct LanguagePicker: View {
     }
 }
 
-enum Language: String, CaseIterable {
-    case us
-    case sp
-    case kr
-    case ch
-    
-    var localeIdentifier: String {
-        switch self {
-        case .us: return "en_US"
-        case .sp: return "es_ES"
-        case .kr: return "ko_KR"
-        case .ch: return "zh_CN"
-        }
-    }
-    
-    var description: String {
-        switch self {
-        case .us: return "english"
-        case .sp: return "spanish"
-        case .kr: return "korean"
-        case .ch: return "chinese"
-        }
-    }
-    
-    var welcomeMessage: String {
-        switch self {
-        case .us: return ""
-        case .sp: return "¿Qué te gusta hoy?"
-        case .kr: return "오늘 무엇을 감사하세요?"
-        case .ch: return "今天感谢什么?"
-        }
-    }
-    
-    var enterMessage: String {
-        switch self {
-        case .us: return "Enter Message"
-        case .sp: return "Enter Message. Escribe un mensaje!"
-        case .kr: return "Enter Message. 메시지 입력!"
-        case .ch: return "Enter Message. 输入消息!"
-        }
-    }
-}
-
-#Preview {
-    ContentView()
-        .environment(ContentViewModel(language: .kr))
-}
+//#Preview {
+//    ContentView()
+//        .environment(ContentViewModel(language: .kr))
+//}
 
 #Preview {
     MessageView(message: Message(text: "Hi there! I'm here to help you learn Korean by asking you what you're thankful for today. ashdjkasdhjkasdhjkasdhjkashdjkashdkjashdjkashdjaskdhasjkdhjkasd", senderType: .bot))

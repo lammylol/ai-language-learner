@@ -16,15 +16,17 @@ import SwiftUI
     }
     var messageModel: MessageModel
     var isFetching: Bool = false
+    var questionPrompt: QuestionPrompt
     
     var language: Language
     var selectedLanguage: Language
     
     private var cancellables: Set<AnyCancellable> = []
     
-    init(language: Language) {
+    init(language: Language, questionPrompt: QuestionPrompt) {
         self.language = language
-        self.messageModel = MessageModel(language: language)
+        self.questionPrompt = questionPrompt
+        self.messageModel = MessageModel(language: language, questionPrompt: questionPrompt)
         self.selectedLanguage = language
         
         // Check for date change on app resume
@@ -45,14 +47,20 @@ import SwiftUI
     }
     
     func onDateChange() {
-        if messageModel.messages.last?.text.starts(with: "Hi there! I'm here to help you learn") == false {
-            let messageText = "Hi there! I'm here to help you learn \(language.description.capitalized) by asking you what you're grateful for each day. Don't worry if you get it wrong; I'll be here to help you out! Let's begin.\n\nWhat are you grateful for today? \(language.welcomeMessage)"
-            // Remove newlines and extra spaces
-            let formattedText = messageText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if messageModel.messages.last?.text.starts(with: questionPrompt.rawValue) == false {
+
+            messageModel.addMessage(
+                Message(
+                    text: questionPrompt.backgroundContext(from: language),
+                    senderType: .bot
+                )
+            )
+            
+            let questionPrompt = questionPrompt.rawValue + " " + questionPrompt.translated(to: language)
             
             messageModel.addMessage(
                 Message(
-                    text: formattedText,
+                    text: questionPrompt,
                     senderType: .bot
                 )
             )
@@ -61,13 +69,18 @@ import SwiftUI
     
     func onLanguageChange() {
         messageModel.messages = []
-        let messageText = "Hi there! I'm here to help you learn \(language.description.capitalized) by asking you what you're grateful for each day. Don't worry if you get it wrong; I'll be here to help you out! Let's begin.\n\nWhat are you grateful for today? \(language.welcomeMessage)"
-        // Remove newlines and extra spaces
-        let formattedText = messageText.trimmingCharacters(in: .whitespacesAndNewlines)
+        messageModel.addMessage(
+            Message(
+                text: questionPrompt.backgroundContext(from: language),
+                senderType: .bot
+            )
+        )
+        
+        let questionPrompt = questionPrompt.rawValue + " " + questionPrompt.translated(to: language)
         
         messageModel.addMessage(
             Message(
-                text: formattedText,
+                text: questionPrompt,
                 senderType: .bot
             )
         )

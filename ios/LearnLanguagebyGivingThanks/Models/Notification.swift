@@ -8,26 +8,49 @@
 import Foundation
 import SwiftData
 
-@Model
-final class NotificationSchedule {
+struct NotificationSchedule: Codable {
     var weekday: Int
     var hour: Int
     var minute: Int
     var repeatSchedule: RepeatSchedule
+}
 
-    init(weekday: Int, hour: Int, minute: Int, repeatSchedule: RepeatSchedule) {
-        self.weekday = weekday
-        self.hour = hour
-        self.minute = minute
-        self.repeatSchedule = repeatSchedule
+enum Day: String, CaseIterable, Codable {
+    case Sunday, Monday, Tuesday, Wednesday, Thursday, Friday, Saturday
+    
+    var weekdayNumber: Int {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "EEEE" // Full day name
+        if let date = dateFormatter.date(from: rawValue) {
+            let calendar = Calendar.current
+            return calendar.component(.weekday, from: date)
+        }
+        return 0
+    }
+
+    static func from(weekdayNumber: Int) -> Day? {
+        switch weekdayNumber {
+        case 1: return .Sunday
+        case 2: return .Monday
+        case 3: return .Tuesday
+        case 4: return .Wednesday
+        case 5: return .Thursday
+        case 6: return .Friday
+        case 7: return .Saturday
+        default: return nil
+        }
+    }
+    
+    var string: String {
+        rawValue
     }
 }
 
-@Model
-class UserSettings {
-    var isReminderOn: Bool
+enum RepeatSchedule: String, CaseIterable, Codable {
+    case daily = "daily"
+    case weekly = "weekly"
     
-    init(isReminderOn: Bool = false) {
-        self.isReminderOn = isReminderOn
+    init(from rawValue: String) {
+        self = RepeatSchedule(rawValue: rawValue) ?? .daily
     }
 }
