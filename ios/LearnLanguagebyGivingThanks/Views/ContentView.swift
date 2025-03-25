@@ -29,6 +29,7 @@ struct ContentView: View {
     
     @FocusState var isTextEditorFocused: Bool
     @State var showDatePickerPopUp: Bool = false
+    @State private var isWelcomeSheetPresented: Bool = false
     
     // Initialize observers to listen for keyboard notifications
     @State private var keyboardWillShow: AnyCancellable?
@@ -42,12 +43,12 @@ struct ContentView: View {
                 Spacer()
                 ReminderPickerLabel(showDatePickerPopUp: $showDatePickerPopUp)
             }
-            .frame(height: 50)
+            .frame(height: 40)
             
             ScrollViewReader { proxy in
                 ScrollView {
                     PromptView(showDatePickerPopUp: $showDatePickerPopUp)
-                        .padding(.top, 5)
+                        .padding(.top, 2)
                     ForEach(viewModel.messageModel.messages) { message in
                             MessageView(message: message)
                             .id(message.id)
@@ -141,16 +142,27 @@ struct ContentView: View {
         .sheet(isPresented: $showDatePickerPopUp){
             ReminderPopUp(language: viewModel.language)
         }
+        .sheet(isPresented: $isWelcomeSheetPresented) {
+            WelcomeSheet()
+        }
         .onAppear {
-            updateViewModel()
+            if isFirstLaunch() {
+                isWelcomeSheetPresented = true
+            }
         }
     }
     
-    func updateViewModel() {
-        if let userSetting = userSettings.first {
-            viewModel.language = userSetting.language
-            viewModel.questionPrompt = userSetting.selectedPrompt
+    /// Checks if it's the first launch of the app.
+    /// - Returns: A boolean indicating if it's the first launch.
+    private func isFirstLaunch() -> Bool {
+        let hasLaunchedKey = "hasLaunchedBefore"
+        let hasLaunched = UserDefaults.standard.bool(forKey: hasLaunchedKey)
+
+        if !hasLaunched {
+            UserDefaults.standard.set(true, forKey: hasLaunchedKey)
+            return true
         }
+        return false
     }
     
     func submit() {

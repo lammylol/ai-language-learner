@@ -22,7 +22,7 @@ struct PromptSelector: View {
     @State var selectedDays: [String] = []
     
     var body: some View {
-        VStack (alignment: .leading, spacing: 5) {
+        VStack (alignment: .leading, spacing: 10) {
             Text("Select Your Prompt")
                 .font(.subheadline)
                 .bold()
@@ -35,7 +35,7 @@ struct PromptSelector: View {
                 }
             } label: {
                 HStack {
-                    Text(userSettings.first?.selectedPrompt.rawValue ?? "What are you grateful for today?")
+                    Text(userSettings.first?.selectedPrompt.rawValue ?? "What are you grateful for?")
                         .font(.title3)
                         .foregroundStyle(Color.blue)
                         .multilineTextAlignment(.leading)
