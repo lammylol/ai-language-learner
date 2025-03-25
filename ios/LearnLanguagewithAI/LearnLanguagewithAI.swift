@@ -18,7 +18,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 }
 
 @main
-struct LearnLanguagebyGivingThanksApp: App {
+struct LearnLanguagewithAI: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
     
     @State private var container: ModelContainer
