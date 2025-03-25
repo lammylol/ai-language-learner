@@ -46,6 +46,8 @@ struct ContentView: View {
             
             ScrollViewReader { proxy in
                 ScrollView {
+                    PromptView(showDatePickerPopUp: $showDatePickerPopUp)
+                        .padding(.top, 5)
                     ForEach(viewModel.messageModel.messages) { message in
                             MessageView(message: message)
                             .id(message.id)
@@ -121,10 +123,15 @@ struct ContentView: View {
             }
             .padding(.bottom, 10)
         }
-        .padding(.horizontal, 15)
-        .onChange(of: viewModel.language) {
-            viewModel.onLanguageChange()
+        .padding(.horizontal, 13)
+        .onChange(of: userSettings.first?.language) {
+            viewModel.language = userSettings.first?.language ?? .kr
+            viewModel.onLanguageorPromptChange()
         } // Change language translation when language changes.
+        .onChange(of: userSettings.first?.selectedPrompt) {
+            viewModel.questionPrompt = userSettings.first?.selectedPrompt ?? .gratitude
+            viewModel.onLanguageorPromptChange()
+        }
         .onChange(of: viewModel.isFetching) {
             viewModel.onChangeOfFetching()
         } // // Add a new message showing 'loading' when fetching.
@@ -135,11 +142,14 @@ struct ContentView: View {
             ReminderPopUp(language: viewModel.language)
         }
         .onAppear {
-            if userSettings.isEmpty {
-                context.insert(UserSettings())
-                try? context.save() // Save the new settings
-            }
-            viewModel.selectedLanguage = userSettings.first?.language ?? .kr
+            updateViewModel()
+        }
+    }
+    
+    func updateViewModel() {
+        if let userSetting = userSettings.first {
+            viewModel.language = userSetting.language
+            viewModel.questionPrompt = userSetting.selectedPrompt
         }
     }
     
@@ -195,68 +205,6 @@ struct ContentView: View {
     }
 }
 
-struct ReminderPickerLabel: View {
-    @Query var userSettings: [UserSettings]
-    
-    @Binding var showDatePickerPopUp: Bool
-    
-    // Get notificationSchedules.
-    var notificationSchedules: [NotificationSchedule]? {
-        userSettings.first?.notificationSchedules
-    }
-    
-    // Get notificationSchedule first.
-    var selectedDayInitials: [String] {
-        userSettings.first?.notificationSchedules?.compactMap { schedule in
-            Day.from(weekdayNumber: schedule.weekday)?.rawValue.prefix(1).uppercased()
-        } ?? []
-    }
-    
-    // Only pick up time from notificationSchedule.
-    var time: String {
-        guard let schedule = notificationSchedules?.first else { return "12:00 AM" }
-        
-        let hourValue = schedule.hour
-        let minute = schedule.minute
-        let formatter = DateFormatter()
-        formatter.dateFormat = "h:mm a" // Format for 12-hour time with AM/PM
-        
-        // Create a Date object for today at the specified hour
-        let date = Calendar.current.date(bySettingHour: hourValue, minute: minute, second: 0, of: Date()) ?? Date()
-        
-        return formatter.string(from: date)
-    }
-    
-    var body: some View {
-        HStack(alignment: .center) {
-            Spacer()
-            if let schedule = notificationSchedules?.first {
-                Text("\(schedule.repeatSchedule.rawValue.capitalized) \(selectedDayInitials.joined(separator: ", "))")
-                    .font(.callout)
-                    .fontWeight(.light)
-                    .multilineTextAlignment(.trailing)
-            }
-            VStack(alignment: .trailing) {
-                Button {
-                    showDatePickerPopUp.toggle()
-                } label: {
-                    if userSettings.first?.isReminderOn == true {
-                        VStack {
-                            Text("\(time)")
-                        }
-                    } else {
-                        Text("Set a Daily Reminder")
-                            .font(.callout)
-                            .multilineTextAlignment(.trailing)
-                    }
-                }
-            }
-        }
-        .frame(maxWidth: .infinity)
-    }
-}
-
-
 struct MessageView: View {
     @Environment(\.colorScheme) var colorScheme
     
@@ -295,6 +243,8 @@ struct MessageView: View {
 
 struct LanguagePicker: View {
     @Environment(ContentViewModel.self) var viewModel
+    @Environment(\.modelContext) private var context
+    @Query var userSettings: [UserSettings]
     
     var body: some View {
         @Bindable var viewModel = viewModel
@@ -310,6 +260,18 @@ struct LanguagePicker: View {
             }
             .tint(.primary)
             .fontWeight(.thin)
+            .onChange(of: viewModel.language) { old, newLanguage in
+                // Update the language in the userSettings
+                if let firstSetting = userSettings.first {
+                    firstSetting.language = newLanguage
+                    // Save changes using context
+                    do {
+                        try context.save() // Save the updated language
+                    } catch {
+                        print("Failed to save context: \(error.localizedDescription)")
+                    }
+                }
+            }
         }
     }
     
@@ -328,9 +290,9 @@ struct LanguagePicker: View {
 
 //#Preview {
 //    ContentView()
-//        .environment(ContentViewModel(language: .kr))
+//        .environment(ContentViewModel(language: .kr, questionPrompt: .gratitude))
 //}
 
-#Preview {
-    MessageView(message: Message(text: "Hi there! I'm here to help you learn Korean by asking you what you're thankful for today. ashdjkasdhjkasdhjkasdhjkashdjkashdkjashdjkashdjaskdhasjkdhjkasd", senderType: .bot))
-}
+//#Preview {
+//    MessageView(message: Message(text: "Hi there! I'm here to help you learn Korean by asking you what you're thankful for today. ashdjkasdhjkasdhjkasdhjkashdjkashdkjashdjkashdjaskdhasjkdhjkasd", senderType: .bot))
+//}

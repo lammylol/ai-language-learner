@@ -7,6 +7,7 @@
 
 import Combine
 import SwiftUI
+import SwiftData
 
 @Observable class ContentViewModel {
     var date: Int = Calendar.current.component(.day, from: Date()) {
@@ -19,15 +20,15 @@ import SwiftUI
     var questionPrompt: QuestionPrompt
     
     var language: Language
-    var selectedLanguage: Language
+    private var modelContext: ModelContext // Adding the context
     
     private var cancellables: Set<AnyCancellable> = []
     
-    init(language: Language, questionPrompt: QuestionPrompt) {
+    init(language: Language, questionPrompt: QuestionPrompt, modelContext: ModelContext) {
+        self.modelContext = modelContext
         self.language = language
         self.questionPrompt = questionPrompt
         self.messageModel = MessageModel(language: language, questionPrompt: questionPrompt)
-        self.selectedLanguage = language
         
         // Check for date change on app resume
         NotificationCenter.default
@@ -67,7 +68,7 @@ import SwiftUI
         }
     }
     
-    func onLanguageChange() {
+    func onLanguageorPromptChange() {
         messageModel.messages = []
         messageModel.addMessage(
             Message(

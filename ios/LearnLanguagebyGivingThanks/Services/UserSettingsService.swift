@@ -10,7 +10,7 @@ import SwiftData
 
 class UserSettingsService {
     // Function to save to local data via SwiftData. Stores the notification schedule.
-    func saveLanguageLocally(language: Language, selectedPrompt: QuestionPrompt, isReminderOn: Bool, context: ModelContext) {
+    func saveDataLocally(language: Language, selectedPrompt: QuestionPrompt, isReminderOn: Bool, context: ModelContext) {
         do {
             let userSettings = UserSettings(isReminderOn: isReminderOn, language: language, selectedPrompt: selectedPrompt)
             context.insert(userSettings)

@@ -21,38 +21,47 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 struct LearnLanguagebyGivingThanksApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
     
-    @State private var container: ModelContainer?
+    @State private var container: ModelContainer
+    @State private var language: Language = .kr
+    @State private var questionPrompt: QuestionPrompt = .gratitude
 
     init() {
         do {
-            // Explicitly define schema for better compatibility
+            // Define schema for compatibility
             let schema = Schema([UserSettings.self])
-            let container = try ModelContainer(for: schema)
+            container = try ModelContainer(for: schema)
             let context = container.mainContext
             
-            // Ensure a UserSettings instance exists
+            // Fetch or create user settings
             let settingsFetch = try context.fetch(FetchDescriptor<UserSettings>())
+            
             if settingsFetch.isEmpty {
                 let defaultSettings = UserSettings.defaultSettings
                 context.insert(defaultSettings)
                 try context.save()
+                print("settingsFetch is empty: \(container.mainContext)")
+                // Initialize with default values if no settings are found
+            } else {
+                // If settings are found, set language and questionPrompt
+                if let userSetting = settingsFetch.first {
+                    self._language = State(initialValue: userSetting.language) // Initialize with fetched value
+                    self._questionPrompt = State(initialValue: userSetting.selectedPrompt) // Initialize with fetched value
+                    print(userSetting.language, userSetting.selectedPrompt)
+                }
             }
             
+            // Initialize container state
             self._container = State(initialValue: container)
         } catch {
-            print("Failed to initialize ModelContainer: \(error.localizedDescription)")
+            fatalError("Failed to initialize ModelContainer: \(error.localizedDescription)")
         }
     }
     
     var body: some Scene {
         WindowGroup {
-            if let container = container {
-                ContentView()
-                    .modelContainer(container)
-                    .environment(ContentViewModel(language: .kr, questionPrompt: QuestionPrompt.gratitude))
-            } else {
-                Text("Failed to load data. Please restart the app.")
-            }
+            ContentView()
+                .modelContainer(container)
+                .environment(ContentViewModel(language: language, questionPrompt: questionPrompt, modelContext: container.mainContext))
         }
     }
 }

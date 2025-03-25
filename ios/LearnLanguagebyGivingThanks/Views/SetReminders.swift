@@ -103,7 +103,7 @@ struct ReminderPopUp: View {
 
             do {
                 try await notificationService.configureNotification(
-                    title: "What Are You Grateful For Today?",
+                    title: userSettings.first?.selectedPrompt.rawValue ?? "What Are You Grateful For?",
                     body: "Reminder to practice your \(language.description.capitalized).",
                     time: scheduleTime,
                     repeatSchedule: repeatSchedule,
