@@ -30,9 +30,7 @@ enum SenderType: String, Codable {
         
         let backgroundContext = questionPrompt.backgroundContext(from: language)
         let questionPrompt = "\(questionPrompt.rawValue) \(questionPrompt.translated(to: language))"
-        
-//        let formatted1 = messageText.trimmingCharacters(in: .whitespacesAndNewlines)
-//        let formatted2 = messagePrompt.trimmingCharacters(in: .whitespacesAndNewlines)
+
         self.messages = [Message(text: backgroundContext, senderType: .bot), Message(text: questionPrompt, senderType: .bot)]
     }
     

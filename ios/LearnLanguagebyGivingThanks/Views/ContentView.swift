@@ -47,12 +47,14 @@ struct ContentView: View {
             
             ScrollViewReader { proxy in
                 ScrollView {
-                    PromptView(showDatePickerPopUp: $showDatePickerPopUp)
-                        .padding(.top, 2)
                     ForEach(viewModel.messageModel.messages) { message in
-                            MessageView(message: message)
-                            .id(message.id)
-                            .allowsHitTesting(true)
+                        if message.text.starts(with: viewModel.questionPrompt.rawValue) {
+                            PromptView(showDatePickerPopUp: $showDatePickerPopUp)
+                                .padding(.top, 2)
+                        }
+                        MessageView(message: message)
+                        .id(message.id)
+                        .allowsHitTesting(true)
                     }
                 }
                 .textSelection(.enabled)

@@ -7,7 +7,10 @@
 
 import Foundation
 import FirebaseFunctions
+import FirebaseAnalytics
+import FirebaseFirestore
 import SwiftUI
+import FirebaseAuth
 
 class LanguageModelAPIService {
     lazy var functions = Functions.functions()
@@ -22,6 +25,46 @@ class LanguageModelAPIService {
                 ]
             }
         ]
+        
+        // Firebase tracking
+        // Get or create a unique anonymous user ID
+        let userID = Auth.auth().currentUser?.uid ?? UIDevice.current.identifierForVendor?.uuidString ?? "anonymous_device_id"
+        
+        // Reference to the Firestore collection
+        let db = Firestore.firestore()
+        let userRef = db.collection("user_api_call_counts").document(userID)
+        
+        // Increment the API call count for the user
+        userRef.getDocument { (document, error) in
+            if let document = document, document.exists {
+                // Document exists, increment the count
+                var currentCount = document.data()?["api_call_count"] as? Int ?? 0
+                currentCount += 1
+                userRef.updateData(["api_call_count": currentCount]) { error in
+                    if let error = error {
+                        print("Error updating document: \(error)")
+                    } else {
+                        print("API call count incremented")
+                    }
+                }
+            } else {
+                // Document doesn't exist, create it with initial count
+                userRef.setData(["api_call_count": 1]) { error in
+                    if let error = error {
+                        print("Error creating document: \(error)")
+                    } else {
+                        print("API call count initialized")
+                    }
+                }
+            }
+        }
+        
+        // Log the API call event to Firebase Analytics
+        Analytics.logEvent("api_call_made", parameters: [
+            "userID": userID,
+            "message": messages.last?.text ?? "na",
+            "message_bucket_count": messages.count
+        ])
         
         functions.httpsCallable("processStringWithOpenAI").call(data) { result, error in
             if let error = error as NSError? {

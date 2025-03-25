@@ -13,6 +13,7 @@ import SwiftData
     var date: Int = Calendar.current.component(.day, from: Date()) {
         didSet {
             onDateChange()
+            print("Date changed from \(oldValue) to \(date)")
         }
     }
     var messageModel: MessageModel
