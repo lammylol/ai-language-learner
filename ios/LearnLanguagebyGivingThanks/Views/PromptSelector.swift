@@ -36,7 +36,7 @@ struct PromptSelector: View {
             } label: {
                 HStack {
                     Text(userSettings.first?.selectedPrompt.rawValue ?? "What are you grateful for today?")
-                        .font(.subheadline)
+                        .font(.title3)
                         .foregroundStyle(Color.blue)
                         .multilineTextAlignment(.leading)
                         .frame(maxWidth: .infinity, alignment: .leading)
