@@ -1,5 +1,7 @@
 # AI Language Learner  
-Learn languages easier with the help of AI.
+Learn languages with the help of AI.
+
+<img src="Images/Learn%20Language%20with%20AI-2.png" alt="Learn Language with AI" width="300" height="auto"/>
 
 ## Background 
 **GAH!** It is so hard to learn Korean. I've been studying Korean on and off for the past year so I can fully utilize it when I spend time in Korea with the in-laws for the holidays. Over the past two months, I ramped up my studying every morning. Beyond just the vocab learning from Duolingo and the grammar from TTMIK (Talk to Me in Korean), what helped me most was writing sentences consistently.
