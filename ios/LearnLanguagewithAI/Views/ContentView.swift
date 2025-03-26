@@ -191,7 +191,7 @@ struct ContentView: View {
         do {
             // system instruction setting
             var systemInstruction: String?
-            systemInstruction = "The user is trying to learn \(viewModel.language.description). Please provide them with corrections to their answer to the prompt: \(viewModel.questionPrompt). Please respond to them in English."
+            systemInstruction = "The user is trying to learn \(viewModel.language.description). Please provide them with corrections to their answer to the prompt: \(viewModel.questionPrompt.rawValue). Please respond to them in English."
             
             // response from model
             response = try await languageAPIService.languageHelper(systemInstruction: systemInstruction ?? "", messages: viewModel.messageModel.aiMessageHistory).trimmingCharacters(in: .whitespacesAndNewlines)
